@@ -8,12 +8,12 @@ export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tailwindcss(),
-    tanstackStart({
-      server: { preset: "node-server" }
-    }),
+    // No preset here — Nitro auto-detects the environment at build time.
+    // On Vercel it uses the "vercel" preset; locally it falls back to "node-server".
+    tanstackStart(),
     react(),
   ],
   server: {
     allowedHosts: ["eclair-strife-clarity.ngrok-free.dev"],
-  }
+  },
 });
