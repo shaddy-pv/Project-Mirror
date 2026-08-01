@@ -4,13 +4,17 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
+// Vercel sets VERCEL=1 at build time. We must explicitly pass the preset
+// because the beta Nitro version does not reliably auto-detect the environment.
+const nitroPreset = process.env.VERCEL ? "vercel" : "node-server";
+
 export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tailwindcss(),
-    // No preset here — Nitro auto-detects the environment at build time.
-    // On Vercel it uses the "vercel" preset; locally it falls back to "node-server".
-    tanstackStart(),
+    tanstackStart({
+      server: { preset: nitroPreset },
+    }),
     react(),
   ],
   server: {
