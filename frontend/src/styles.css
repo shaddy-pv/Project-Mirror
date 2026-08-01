@@ -1,0 +1,392 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+
+/* Auralis — Clean Paper Workflow design system */
+@import "@fontsource-variable/archivo";
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Auralis / Enginow design system.
+ * Pure white base, #15171C neutral, warm amber #FFE8B8 accent.
+ * Type: Archivo (display, weight 660) + Geist (body/labels/mono).
+ * Surfaces: Glass with backdrop blur and gradient border shells.
+ */
+
+@theme inline {
+  --font-serif: "Archivo Variable", "Archivo", ui-sans-serif, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist", ui-monospace, monospace;
+
+  --radius-sm: 2px;
+  --radius-md: 5px;
+  --radius-lg: 14px;
+  --radius-xl: 17px;
+  --radius-2xl: 24px;
+  --radius-3xl: 43px;
+  --radius-full: 999px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mute: var(--ink-mute);
+  --color-rule: var(--rule);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-amber: var(--amber);
+  --color-moss: var(--moss);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 14px;
+
+  /* ── Auralis palette ─────────────────────────────────── */
+  --paper: #FFFFFF;
+  --background: #FFFFFF;
+
+  /* Neutral foundation */
+  --ink: #15171C;
+  --foreground: #15171C;
+  --ink-soft: rgba(21, 23, 28, 0.62);
+  --ink-mute: rgba(21, 23, 28, 0.40);
+  --rule: rgba(21, 23, 28, 0.09);
+
+  /* Auralis accent palette */
+  --amber: #FFE8B8;           /* primary accent */
+  --amber-soft: #FFF8EA;      /* secondary/hover */
+  --amber-bright: #FFD980;    /* active/emphasis */
+  --tertiary: #E8FFC2;        /* supporting contrast */
+  --moss: #3a7d44;            /* green semantic */
+  --ember: #c45e2e;           /* error/warm signal */
+  --signal: #c45e2e;
+
+  /* Surfaces */
+  --card: rgba(255, 255, 255, 0.40);
+  --card-foreground: #15171C;
+  --popover: #FFFFFF;
+  --popover-foreground: #15171C;
+  --secondary: #FFF8EA;
+  --secondary-foreground: #15171C;
+  --muted: #FFF8EA;
+  --muted-foreground: rgba(21, 23, 28, 0.40);
+
+  /* Component tokens */
+  --primary: #15171C;
+  --primary-foreground: #FFF9ED;
+  --accent: #FFE8B8;
+  --accent-foreground: #15171C;
+  --destructive: oklch(0.55 0.2 27);
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(21, 23, 28, 0.09);
+  --input: rgba(21, 23, 28, 0.07);
+  --ring: #FFE8B8;
+
+  /* Spacing rhythm (5px base) */
+  --space-base: 5px;
+  --space-sm: 1px;
+  --space-md: 2.36px;
+  --space-lg: 5px;
+  --space-xl: 6px;
+  --space-gap: 4px;
+  --card-padding: 18px;
+  --section-padding: 26px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background-color: var(--paper);
+    color: var(--ink);
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-feature-settings: "ss01";
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+/* ── Auralis Glass Surface ──────────────────────────────── */
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.40);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 0.8px solid rgba(21, 23, 28, 0.09);
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow:
+    rgba(50, 42, 31, 0.08) 0px 18px 44px 0px,
+    rgba(21, 23, 28, 0.04) 0px 6px 16px 0px,
+    rgba(255, 255, 255, 0.86) 0px 1px 0px 0px inset,
+    rgba(21, 23, 28, 0.043) 0px -1px 0px 0px inset;
+}
+
+/* Gradient border shell — wraps a glass card */
+@utility glass-shell {
+  position: relative;
+  padding: 1px;
+  border-radius: 25px;
+  background: linear-gradient(135deg,
+    rgba(21, 23, 28, 0.14),
+    rgba(21, 23, 28, 0.04),
+    rgba(185, 138, 69, 0.18)
+  );
+}
+
+/* Elevated glass — for hero panels & feature cards */
+@utility glass-elevated {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 0.8px solid rgba(255, 255, 255, 1.6);
+  border-radius: 24px;
+  box-shadow:
+    rgba(21, 23, 28, 0.14) 0px 10px 22px 0px,
+    rgba(255, 255, 255, 0.18) 0px 1px 0px 0px inset,
+    rgba(0, 0, 0, 0.24) 0px -8px 14px 0px inset;
+}
+
+/* ── Hairline border ────────────────────────────────────── */
+@utility hairline {
+  border-color: rgba(21, 23, 28, 0.09);
+}
+
+/* ── Typography utilities ───────────────────────────────── */
+@utility display {
+  font-family: "Archivo Variable", "Archivo", sans-serif;
+  font-weight: 660;
+  letter-spacing: -0.052em;
+  line-height: 0.92;
+}
+
+@utility display-hero {
+  font-family: "Archivo Variable", "Archivo", sans-serif;
+  font-weight: 660;
+  font-size: 78.624px;
+  line-height: 72.3341px;
+  letter-spacing: -0.052em;
+}
+
+@utility italic-serif {
+  font-family: "Archivo Variable", "Archivo", sans-serif;
+  font-style: italic;
+  font-weight: 660;
+}
+
+@utility eyebrow {
+  font-family: "Geist", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+@utility mono {
+  font-family: "Geist", ui-monospace, monospace;
+}
+
+/* ── Auralis Button: primary ────────────────────────────── */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #FFF9ED;
+  font-family: "Geist", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 19.5px;
+  letter-spacing: -0.13px;
+  border: 0.8px solid rgba(255, 232, 184, 0.24);
+  padding: 10px 22px;
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: rgba(21, 23, 28, 0.1) 0px 4px 12px 0px;
+  }
+}
+
+@utility btn-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #15171C;
+  font-family: "Geist", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.13px;
+  border: 0.8px solid rgba(21, 23, 28, 0.14);
+  padding: 10px 22px;
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    background: var(--amber-bright);
+    transform: translateY(-1px);
+  }
+}
+
+@utility btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: transparent;
+  color: #15171C;
+  font-family: "Geist", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.13px;
+  border: 0.8px solid rgba(21, 23, 28, 0.20);
+  padding: 10px 22px;
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    background: rgba(21, 23, 28, 0.04);
+    transform: translateY(-1px);
+  }
+}
+
+/* ── Underline draw on hover ────────────────────────────── */
+@utility link-draw {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ── Marquee ────────────────────────────────────────────── */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility marquee-track {
+  animation: marquee-x 40s linear infinite;
+}
+
+/* ── Rise-in animation ──────────────────────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility rise-in {
+  animation: rise 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Breathing pulse (for WebGL fallback) ───────────────── */
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+@utility amber-haze {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 50% 20%,
+    rgba(255, 232, 184, 0.35) 0%,
+    rgba(255, 248, 234, 0.12) 50%,
+    transparent 80%
+  );
+  animation: breathe 9s ease infinite;
+  pointer-events: none;
+}
+
+/* ── Grid paper (dots) ──────────────────────────────────── */
+@utility grid-paper {
+  background-image:
+    radial-gradient(circle, rgba(21, 23, 28, 0.10) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@utility grid-paper-fine {
+  background-image:
+    radial-gradient(circle, rgba(21, 23, 28, 0.08) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+/* ── Caret blink ────────────────────────────────────────── */
+@keyframes caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@utility caret {
+  animation: caret 1s steps(1) infinite;
+}
+
+/* ── Progress bar ───────────────────────────────────────── */
+@keyframes progress-fill {
+  from { width: 0; }
+  to { width: var(--target, 68%); }
+}
+@utility progress-bar {
+  animation: progress-fill 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Amber tag pill ─────────────────────────────────────── */
+@utility tag-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--ink);
+  font-family: "Geist", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border: 0.8px solid rgba(21, 23, 28, 0.08);
+}
+
+/* ── Amber noise haze overlay (WebGL DOM fallback) ──────── */
+@utility amber-noise-bg {
+  background:
+    radial-gradient(ellipse 70% 40% at 30% 60%, rgba(255,232,184,0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 70% 30%, rgba(232,255,194,0.10) 0%, transparent 60%),
+    #FFFFFF;
+}

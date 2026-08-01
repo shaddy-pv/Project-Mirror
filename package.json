@@ -1,0 +1,9 @@
+{
+  "name": "soft-hues-workshop-main",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "admin"
+  ]
+}
