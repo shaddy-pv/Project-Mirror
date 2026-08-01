@@ -3,16 +3,16 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
+import { nitro } from "nitro/vite";
 
 export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tailwindcss(),
-    // Preset is hardcoded to "vercel" — this project is deployed on Vercel.
-    // Local development uses `vite dev` (not `vite build`) so this has no impact locally.
-    tanstackStart({
-      server: { preset: "vercel" },
-    }),
+    // Explicitly configure nitro to use the vercel preset
+    // Local dev works fine via `vite dev` which does not use the nitro build
+    tanstackStart(),
+    nitro({ preset: "vercel" }),
     react(),
   ],
   server: {
