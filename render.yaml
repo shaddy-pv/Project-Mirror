@@ -2,7 +2,7 @@ services:
   - type: web
     name: enginow-backend
     env: node
-    rootDir: backend
+    rootDir: apps/api
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:

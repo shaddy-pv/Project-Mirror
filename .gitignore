@@ -1,7 +1,39 @@
+# ── Dependencies ───────────────────────────────────────────────────
 node_modules/
+
+# ── Build outputs ──────────────────────────────────────────────────
+dist/
+build/
+.next/
+.output/
+.nitro/
+.vinxi/
+
+# ── Environment variables ──────────────────────────────────────────
 .env
 .env.*
 !.env.example
-dist/
-build/
+
+# ── Logs ───────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── OS & Editor ────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+.vscode/settings.json
+
+# ── Deployment ─────────────────────────────────────────────────────
+.vercel
+
+# ── Package manager artifacts (use npm only) ───────────────────────
+bun.lock
+bunfig.toml
+yarn.lock
+pnpm-lock.yaml
+
+# ── Lovable (legacy, no longer used) ──────────────────────────────
+.lovable/
+
+# ── TypeScript ─────────────────────────────────────────────────────
+*.tsbuildinfo
