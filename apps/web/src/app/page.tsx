@@ -96,7 +96,6 @@ function Nav() {
               <Link href="/auth"
                 className="hidden text-[13.5px] sm:inline"
                 style={{ color: "var(--ink-soft)" }}
-                search={{}}
               >
                 Sign in
               </Link>
@@ -420,8 +419,8 @@ function Courses() {
             style={{
               borderBottom: "0.8px solid rgba(21,23,28,0.09)",
             }}
-            onMouseEnter={(e: React.MouseEvent<HTMLLIElement>) => (e.currentTarget.style.background = "rgba(255,232,184,0.10)")}
-            onMouseLeave={(e: React.MouseEvent<HTMLLIElement>) => (e.currentTarget.style.background = "transparent")}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "rgba(255,232,184,0.10)")}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = "transparent")}
           >
             <motion.li
               initial={{ opacity: 0, y: 24 }}
@@ -519,8 +518,8 @@ function Programs() {
                 borderBottom: "0.8px solid rgba(21,23,28,0.09)",
                 ...(i % 2 === 0 ? { borderRight: "0.8px solid rgba(21,23,28,0.09)" } : {}),
               }}
-              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "rgba(255,255,255,0.70)")}
-              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "transparent")}
+              onMouseEnter={(e: React.MouseEvent<HTMLLIElement>) => (e.currentTarget.style.background = "rgba(255,255,255,0.70)")}
+              onMouseLeave={(e: React.MouseEvent<HTMLLIElement>) => (e.currentTarget.style.background = "transparent")}
             >
               <Link href={r.href} className="block">
                 <div className="flex items-start justify-between">

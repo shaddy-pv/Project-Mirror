@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Enginow is a modern learning house for engineers.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -420,7 +420,7 @@ export default function DashboardPage() {
                         <div className="mt-4 flex items-center gap-2 text-[12px]" style={{ color: "var(--ink-mute)" }}>
                           <Clock className="h-3 w-3" /><span>{course.duration}</span><span className="opacity-40">┬╖</span><span>{course.level}</span>
                         </div>
-                        <Link href="/learn/$slug" params={{ slug: course.slug }} className="btn-primary mt-5 justify-center">
+                        <Link href={`/courses/${course.slug}`} className="btn-primary mt-5 justify-center">
                           {enrollment.progress === 0 ? "Start course" : "Continue learning"}<ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>

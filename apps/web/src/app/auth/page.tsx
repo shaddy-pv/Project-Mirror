@@ -245,7 +245,6 @@ function AuthContent() {
         <Link href="/"
           className="absolute left-6 top-6 inline-flex items-center gap-1.5 text-[13px] transition-colors md:left-10 md:top-10"
           style={{ color: "var(--ink-mute)" }}
-          search={{}}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Home
