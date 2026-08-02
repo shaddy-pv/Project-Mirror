@@ -1,9 +1,24 @@
 {
-  "name": "soft-hues-workshop-main",
+  "name": "enginow",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend",
-    "admin"
-  ]
+    "apps/web",
+    "apps/api",
+    "apps/panels/admin",
+    "apps/panels/educator",
+    "apps/panels/hr",
+    "apps/panels/sales"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:admin": "npm run dev --workspace=apps/panels/admin",
+    "dev:educator": "npm run dev --workspace=apps/panels/educator",
+    "dev:hr": "npm run dev --workspace=apps/panels/hr",
+    "dev:sales": "npm run dev --workspace=apps/panels/sales",
+    "dev:panels": "npm run dev --workspace=apps/panels/admin & npm run dev --workspace=apps/panels/educator & npm run dev --workspace=apps/panels/hr & npm run dev --workspace=apps/panels/sales",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "lint": "npm run lint --workspaces --if-present"
+  }
 }
