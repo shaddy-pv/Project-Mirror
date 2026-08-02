@@ -1,5 +1,54 @@
 # **<u>Project 2 | Enginow</u>** 
 
+## **Project Structure**
+- `frontend/`: Contains the TanStack Start (React, Tailwind v4, Shadcn) web application.
+- `backend/`: Contains the Express.js standalone backend (Node.js, MongoDB, Redis, Firebase Admin).
+
+## **Tech Stack**
+- **Frontend:** TanStack Start, React 19, Tailwind CSS v4, Radix UI (shadcn)
+- **Backend:** Node.js, Express, MongoDB, Redis, Razorpay, Firebase Admin
+
+## **Setup Commands**
+1. **Clone the repository & pull latest develop branch:**
+   ```bash
+   git clone <repo-url>
+   git checkout develop
+   ```
+2. **Environment Variables:**
+   - In both `frontend/` and `backend/`, copy the example environments:
+   ```bash
+   cp frontend/.env.example frontend/.env
+   cp backend/.env.example backend/.env
+   ```
+   *(Never commit the `.env` file!)*
+3. **Install Dependencies:**
+   ```bash
+   cd frontend && npm install
+   cd ../backend && npm install
+   ```
+4. **Run the Development Servers:**
+   - Frontend: `npm run dev` (in `frontend/`)
+   - Backend: `npm run dev` (in `backend/`)
+
+## **Branch Strategy & Merge Rule**
+We follow a strict branching model:
+- `main`: **Only for stable, production-ready code.** No direct commits!
+- `develop`: The main integration branch.
+- **Developer Branches:** Create your own branch from `develop` for features.
+  - Examples: `feature/public-platform`, `feature/learning-platform`, `feature/recruitment-platform`
+
+**Merge Flow:**
+`Developer Branch` → `Pull Request (PR)` → `Review & Approval` → `develop` → `Testing` → `main`
+
+## **Team Responsibilities**
+- **Developer 1 (Public Website & Core):** Auth, Global UI, Homepage, Legal Pages, Newsletters, Contact API.
+- **Developer 2 (Learning Platform LMS):** Courses, Trainings, Resources, Blogs, Learner/Educator Dashboards.
+- **Developer 3 (Recruitment & Commerce):** Careers, Shop, Assessments, Document Generation, HR/Admin Dashboards.
+
+---
+
+## **Project Requirements (Original Brief)**
+
 Enginow website redesign, so basically don't focus on current brand templates or pages, you need to start from scratch. 
 
 So basically the website will be having a main website for public visibility, all can see and access. It will be having 5 roles ( Learner(Student) ,Educator, HR,Sales, Admin) so in main website student login will be there for others access a dedicated dashboards will be there for admin and educator, admin,sales and educators will be having dashboard from where they can perform all the defined tasks, 
