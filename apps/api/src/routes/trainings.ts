@@ -16,11 +16,18 @@ router.get("/", async (req, res) => {
       return res.json(cached);
     }
 
-    const docs = await trainings().find({ status: "live" }).sort({ createdAt: -1 }).toArray();
+    const docs = await trainings().find({ status: { $in: ["live", "published"] } }).sort({ createdAt: -1 }).toArray();
     
     const formattedDocs = docs.map((d) => {
       const { _id, ...rest } = d;
-      return { ...rest, id: _id.toString() };
+      return {
+        ...rest,
+        id: _id.toString(),
+        slug: rest.slug || _id.toString(),
+        youWillLearn: rest.youWillLearn || [],
+        originalPrice: rest.originalPrice ?? 0,
+        discountedPrice: rest.discountedPrice ?? 0,
+      };
     });
 
     await cacheSet(CACHE_KEY, formattedDocs, CACHE_TTL);
@@ -33,18 +40,20 @@ router.get("/", async (req, res) => {
 // @ts-ignore
 router.get("/:slug", async (req, res) => {
   try {
-    let query: any = { slug: req.params.slug, status: "live" };
+    let query: any = { slug: req.params.slug, status: { $in: ["live", "published"] } };
     if (req.params.slug.length === 24) {
-      query = { $or: [{ slug: req.params.slug }, { _id: new ObjectId(req.params.slug) }], status: "live" };
+      query = { $or: [{ slug: req.params.slug }, { _id: new ObjectId(req.params.slug) }], status: { $in: ["live", "published"] } };
     }
     const doc = await trainings().findOne(query);
     if (!doc) {
       return res.status(404).json({ error: "Training not found" });
     }
-    const { _id, roadmap, ...rest } = doc;
+    const { _id, roadmap, youWillLearn, ...rest } = doc;
     res.json({
       ...rest,
       id: _id.toString(),
+      slug: rest.slug || _id.toString(),
+      youWillLearn: youWillLearn || [],
       roadmap: roadmap || [],
     });
   } catch (error: any) {

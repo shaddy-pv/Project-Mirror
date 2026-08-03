@@ -68,12 +68,14 @@ function Nav() {
           ) : auth.isAuthenticated ? (
             <>
               {isAdmin && (
-                <Link href="/admin-dashboard"
+                <a href={process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:8080"}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors sm:inline-flex"
                   style={{ background: "var(--amber)", color: "var(--ink)", border: "0.8px solid rgba(21,23,28,0.12)" }}
                 >
                   Admin Panel
-                </Link>
+                </a>
               )}
               <Link href="/learner-dashboard"
                 className="hidden items-center gap-1.5 text-[13.5px] sm:inline-flex"

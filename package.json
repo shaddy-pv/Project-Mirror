@@ -20,5 +20,8 @@
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
     "lint": "npm run lint --workspaces --if-present"
+  },
+  "dependencies": {
+    "soft-hues-workshop-main": "file:../soft-hues-workshop-main"
   }
 }

@@ -165,7 +165,7 @@ function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.leaderboard.map((r) => (
+                    {data.leaderboard.map((r: { name: string; code: string; referrals: number }) => (
                       <TableRow key={r.code}>
                         <TableCell className="font-medium">{r.name}</TableCell>
                         <TableCell>

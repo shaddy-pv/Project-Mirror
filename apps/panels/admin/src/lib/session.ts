@@ -7,15 +7,18 @@ export type ModuleKey =
   | "approvals"
   | "users"
   | "courses"
+  | "internships"
+  | "careers"
+  | "shop"
   | "blogs"
   | "settings";
 
 /** Which modules each role can open (Phase 1 scope of the access matrix). */
 export const ACCESS: Record<Role, ModuleKey[]> = {
-  admin: ["dashboard", "approvals", "users", "courses", "blogs", "settings"],
+  admin: ["dashboard", "approvals", "users", "courses", "internships", "careers", "shop", "blogs", "settings"],
   educator: ["dashboard", "courses", "blogs", "settings"],
-  hr: ["dashboard", "blogs", "settings"],
-  sales: ["dashboard", "blogs", "settings"],
+  hr: ["dashboard", "internships", "blogs", "settings"],
+  sales: ["dashboard", "shop", "blogs", "settings"],
 };
 
 export function canAccess(role: Role, module: ModuleKey) {

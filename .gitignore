@@ -8,6 +8,8 @@ build/
 .output/
 .nitro/
 .vinxi/
+.tanstack/
+.wrangler/
 
 # ── Environment variables ──────────────────────────────────────────
 .env

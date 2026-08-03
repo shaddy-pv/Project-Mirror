@@ -16,7 +16,7 @@ router.get("/stats", async (req, res) => {
 
     const [usersCount, coursesCount, enrollmentsCount] = await Promise.all([
       profiles().countDocuments(),
-      courses().countDocuments({ status: "live" }),
+      courses().countDocuments({ status: { $in: ["live", "published"] } }),
       enrollments().countDocuments(),
     ]);
 
@@ -39,7 +39,7 @@ router.get("/latest-cohort", async (req, res) => {
     if (cached) return res.json(cached);
 
     const latestTraining = await trainings()
-      .find({ status: "live" })
+      .find({ status: { $in: ["live", "published"] } })
       .sort({ createdAt: -1 })
       .limit(1)
       .toArray();

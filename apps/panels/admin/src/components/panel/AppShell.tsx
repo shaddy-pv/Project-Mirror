@@ -3,11 +3,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
+  Briefcase,
+  Building2,
   FileText,
   Inbox,
   LayoutDashboard,
   Menu,
   Settings,
+  ShoppingBag,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,9 @@ const NAV: { to: string; label: string; icon: typeof Users; module: ModuleKey }[
   { to: "/approvals", label: "Approvals Inbox", icon: Inbox, module: "approvals" },
   { to: "/users", label: "Users & Referrals", icon: Users, module: "users" },
   { to: "/courses", label: "Courses & Training", icon: BookOpen, module: "courses" },
+  { to: "/internships", label: "Internships", icon: Briefcase, module: "internships" },
+  { to: "/careers", label: "Careers", icon: Building2, module: "careers" },
+  { to: "/shop", label: "Shop", icon: ShoppingBag, module: "shop" },
   { to: "/blogs", label: "Blogs", icon: FileText, module: "blogs" },
   { to: "/settings", label: "Settings", icon: Settings, module: "settings" },
 ];
@@ -37,6 +43,9 @@ const TITLES: Record<string, string> = {
   "/approvals": "Approvals Inbox",
   "/users": "Users & Referrals",
   "/courses": "Courses & Training",
+  "/internships": "Internships",
+  "/careers": "Careers",
+  "/shop": "Shop",
   "/blogs": "Blogs",
   "/settings": "Settings",
 };

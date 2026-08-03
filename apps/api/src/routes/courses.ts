@@ -22,26 +22,26 @@ router.get("/published", async (req, res) => {
     const cached = await cacheGet<unknown[]>(COURSES_CACHE_KEY);
     if (cached) return res.json(cached);
 
-    const docs = await courses().find({ status: "live" }).sort({ createdAt: -1 }).toArray();
+    const docs = await courses().find({ status: { $in: ["live", "published"] } }).sort({ createdAt: -1 }).toArray();
     const result = docs.map((c) => ({
       id: c._id.toString(),
-      slug: c.slug,
+      slug: c.slug || c._id.toString(),
       title: c.title,
       shortDescription: c.shortDescription ?? null,
       description: c.description ?? null,
       bannerUrl: c.bannerUrl ?? null,
-      category: c.category,
-      level: c.level,
+      category: c.category || "General",
+      level: c.level || "All levels",
       duration: c.duration ?? null,
-      price: c.price,
-      isFree: c.isFree,
-      isPremium: c.isPremium,
-      isNew: c.isNew,
-      isPopular: c.isPopular,
-      isComingSoon: c.isComingSoon,
-      roadmap: c.roadmap,
+      price: c.price ?? 0,
+      isFree: Boolean(c.isFree),
+      isPremium: Boolean(c.isPremium ?? !c.isFree),
+      isNew: Boolean(c.isNew),
+      isPopular: Boolean(c.isPopular),
+      isComingSoon: Boolean(c.isComingSoon),
+      roadmap: c.roadmap || [],
       status: c.status,
-      createdAt: c.createdAt.toISOString(),
+      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
     }));
 
     await cacheSet(COURSES_CACHE_KEY, result, CACHE_TTL);
@@ -54,28 +54,32 @@ router.get("/published", async (req, res) => {
 router.get("/slug/:slug", async (req, res) => {
   try {
     const { slug } = req.params;
-    const course = await courses().findOne({ slug, status: "live" });
+    let query: any = { slug, status: { $in: ["live", "published"] } };
+    if (slug.length === 24) {
+      query = { $or: [{ slug }, { _id: new ObjectId(slug) }], status: { $in: ["live", "published"] } };
+    }
+    const course = await courses().findOne(query);
     if (!course) return res.status(404).json({ error: "Course not found" });
 
     res.json({
       id: course._id.toString(),
-      slug: course.slug,
+      slug: course.slug || course._id.toString(),
       title: course.title,
       shortDescription: course.shortDescription ?? null,
       description: course.description ?? null,
       bannerUrl: course.bannerUrl ?? null,
-      category: course.category,
-      level: course.level,
+      category: course.category || "General",
+      level: course.level || "All levels",
       duration: course.duration ?? null,
-      price: course.price,
-      isFree: course.isFree,
-      isPremium: course.isPremium,
-      isNew: course.isNew,
-      isPopular: course.isPopular,
-      isComingSoon: course.isComingSoon,
-      roadmap: course.roadmap,
+      price: course.price ?? 0,
+      isFree: Boolean(course.isFree),
+      isPremium: Boolean(course.isPremium ?? !course.isFree),
+      isNew: Boolean(course.isNew),
+      isPopular: Boolean(course.isPopular),
+      isComingSoon: Boolean(course.isComingSoon),
+      roadmap: course.roadmap || [],
       status: course.status,
-      createdAt: course.createdAt.toISOString(),
+      createdAt: course.createdAt ? new Date(course.createdAt).toISOString() : new Date().toISOString(),
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as BlogsRouteImport } from './routes/blogs'
+import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as InternshipsRouteImport } from './routes/internships'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShopRouteImport } from './routes/shop'
 import { Route as UsersRouteImport } from './routes/users'
 
 const IndexRoute = IndexRouteImport.update({
@@ -31,14 +34,29 @@ const BlogsRoute = BlogsRouteImport.update({
   path: '/blogs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesRoute = CoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternshipsRoute = InternshipsRouteImport.update({
+  id: '/internships',
+  path: '/internships',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -51,16 +69,22 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/approvals': typeof ApprovalsRoute
   '/blogs': typeof BlogsRoute
+  '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/internships': typeof InternshipsRoute
   '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/approvals': typeof ApprovalsRoute
   '/blogs': typeof BlogsRoute
+  '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/internships': typeof InternshipsRoute
   '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -68,22 +92,46 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/approvals': typeof ApprovalsRoute
   '/blogs': typeof BlogsRoute
+  '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/internships': typeof InternshipsRoute
   '/settings': typeof SettingsRoute
+  '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/approvals' | '/blogs' | '/courses' | '/settings' | '/users'
+  fullPaths:
+    | '/'
+    | '/approvals'
+    | '/blogs'
+    | '/careers'
+    | '/courses'
+    | '/internships'
+    | '/settings'
+    | '/shop'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/approvals' | '/blogs' | '/courses' | '/settings' | '/users'
+  to:
+    | '/'
+    | '/approvals'
+    | '/blogs'
+    | '/careers'
+    | '/courses'
+    | '/internships'
+    | '/settings'
+    | '/shop'
+    | '/users'
   id:
     | '__root__'
     | '/'
     | '/approvals'
     | '/blogs'
+    | '/careers'
     | '/courses'
+    | '/internships'
     | '/settings'
+    | '/shop'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -91,8 +139,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApprovalsRoute: typeof ApprovalsRoute
   BlogsRoute: typeof BlogsRoute
+  CareersRoute: typeof CareersRoute
   CoursesRoute: typeof CoursesRoute
+  InternshipsRoute: typeof InternshipsRoute
   SettingsRoute: typeof SettingsRoute
+  ShopRoute: typeof ShopRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -119,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses': {
       id: '/courses'
       path: '/courses'
@@ -126,11 +184,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internships': {
+      id: '/internships'
+      path: '/internships'
+      fullPath: '/internships'
+      preLoaderRoute: typeof InternshipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -147,10 +219,23 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApprovalsRoute: ApprovalsRoute,
   BlogsRoute: BlogsRoute,
+  CareersRoute: CareersRoute,
   CoursesRoute: CoursesRoute,
+  InternshipsRoute: InternshipsRoute,
   SettingsRoute: SettingsRoute,
+  ShopRoute: ShopRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
