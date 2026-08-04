@@ -124,21 +124,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             {TITLES[pathname] ?? "Enginow Panel"}
           </h2>
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              Preview panel as
+            <span className="text-xs text-muted-foreground bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded font-semibold uppercase">
+              Admin Workspace
             </span>
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-              <SelectTrigger className="w-36 bg-card" aria-label="Preview panel as role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </header>
 

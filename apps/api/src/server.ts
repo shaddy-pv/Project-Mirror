@@ -13,7 +13,8 @@ import blogsRoutes from "./routes/blogs";
 import assessmentsRoutes from "./routes/assessments";
 import inquiriesRoutes from "./routes/inquiries";
 import salesRoutes from "./routes/sales";
-import { initDb } from "./db";
+import { staffAuthRouter, seedStaffAccounts } from "./routes/staffAuth";
+import { initDb, getDb } from "./db";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+app.use("/api/staff", staffAuthRouter);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/admin", adminRoutes);
@@ -43,6 +45,11 @@ app.get("/health", (req, res) => {
 
 const startServer = async () => {
   await initDb();
+  await seedStaffAccounts();
+  try {
+    // Drop user_roles collection if present so all public users are standard learners
+    await getDb().collection("user_roles").drop().catch(() => {});
+  } catch (e) {}
   app.listen(port, () => {
     console.log(`Backend server listening on port ${port}`);
   });

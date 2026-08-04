@@ -1,18 +1,10 @@
 import { Router } from "express";
 import { getDb } from "../db";
 import { requireFirebaseAuth, AuthenticatedRequest } from "../middleware/auth";
+import { requireStaffAuth, AuthenticatedStaffRequest } from "./staffAuth";
 import { ObjectId } from "mongodb";
-import { userRoles } from "../collections";
 
 const router = Router();
-
-async function requireAdmin(userId: string) {
-  const adminRole = await userRoles().findOne({ userId, role: "admin" });
-  if (!adminRole) {
-    throw new Error("Unauthorized: admin role required");
-  }
-  return true;
-}
 
 // @ts-ignore
 router.get("/", async (req, res) => {
@@ -31,7 +23,6 @@ router.get("/", async (req, res) => {
 router.post("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const now = new Date();
-    // Anyone authenticated can create a blog
     const doc = {
       ...req.body,
       status: "pending_approval",
@@ -39,12 +30,6 @@ router.post("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => 
       createdAt: now,
       updatedAt: now,
     };
-    
-    // Check if the user is an admin. If so, they can publish directly if they sent status: "published"
-    const isAdmin = await userRoles().findOne({ userId: req.user!.userId, role: "admin" });
-    if (isAdmin && req.body.status === "published") {
-      doc.status = "published";
-    }
 
     const result = await getDb().collection("blogs").insertOne({ _id: new ObjectId(), ...doc });
     res.json({ id: result.insertedId.toString() });
@@ -72,19 +57,13 @@ router.put("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) =
     const existing = await getDb().collection("blogs").findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
     
-    const isAdmin = await userRoles().findOne({ userId: req.user!.userId, role: "admin" });
-    if (!isAdmin && existing.authorId !== req.user!.userId) {
-      return res.status(403).json({ error: "Only the author or an admin can edit this blog" });
-    }
-
-    let status = req.body.status || existing.status;
-    if (!isAdmin && status === "published") {
-      status = "pending_approval";
+    if (existing.authorId !== req.user!.userId) {
+      return res.status(403).json({ error: "Only the author can edit this blog" });
     }
 
     await getDb().collection("blogs").updateOne(
       { _id: new ObjectId(id) },
-      { $set: { ...req.body, status, updatedAt: new Date() } }
+      { $set: { ...req.body, status: "pending_approval", updatedAt: new Date() } }
     );
     res.json({ success: true });
   } catch (error: any) {
@@ -99,9 +78,8 @@ router.delete("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res
     const existing = await getDb().collection("blogs").findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
     
-    const isAdmin = await userRoles().findOne({ userId: req.user!.userId, role: "admin" });
-    if (!isAdmin && existing.authorId !== req.user!.userId) {
-      return res.status(403).json({ error: "Only the author or an admin can delete this blog" });
+    if (existing.authorId !== req.user!.userId) {
+      return res.status(403).json({ error: "Only the author can delete this blog" });
     }
 
     await getDb().collection("blogs").deleteOne({ _id: new ObjectId(id) });
@@ -111,10 +89,10 @@ router.delete("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res
   }
 });
 
+// Staff Admin Approve/Reject
 // @ts-ignore
-router.patch("/:id/approve", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
     const id = String(req.params.id);
     await getDb().collection("blogs").updateOne(
       { _id: new ObjectId(id) },
@@ -127,9 +105,8 @@ router.patch("/:id/approve", requireFirebaseAuth, async (req: AuthenticatedReque
 });
 
 // @ts-ignore
-router.patch("/:id/reject", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
     const id = String(req.params.id);
     const { reason } = req.body;
     await getDb().collection("blogs").updateOne(

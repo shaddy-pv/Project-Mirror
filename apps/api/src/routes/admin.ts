@@ -1,7 +1,7 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { ObjectId } from "mongodb";
-import { requireFirebaseAuth, AuthenticatedRequest } from "../middleware/auth";
-import { courses, userRoles, profiles, enrollments, trainings, products, orders, AppRole } from "../collections";
+import { requireStaffAuth, AuthenticatedStaffRequest } from "./staffAuth";
+import { courses, profiles, enrollments, trainings, products, orders, StaffRole } from "../collections";
 import { getDb } from "../db";
 import { cacheDel } from "../utils/cache";
 import PDFDocument from "pdfkit";
@@ -44,32 +44,30 @@ async function generateCertificatePdf(certData: any): Promise<string> {
 const COURSES_CACHE_KEY = "courses:published";
 const INTERNSHIPS_CACHE_KEY = "internships:all";
 const TRAININGS_CACHE_KEY = "trainings:published";
+const CAREERS_CACHE_KEY = "careers:all";
 
 const router = Router();
 
-async function requireAdmin(userId: string) {
-  const adminRole = await userRoles().findOne({ userId, role: "admin" });
-  if (!adminRole) {
+function checkAdmin(req: AuthenticatedStaffRequest) {
+  if (req.staff?.role !== "admin") {
     throw new Error("Unauthorized: admin role required");
   }
   return true;
 }
 
-async function requireRoles(userId: string, allowedRoles: AppRole[]) {
-  const roleDocs = await userRoles().find({ userId }).toArray();
-  const roles = roleDocs.map(r => r.role);
-  if (roles.includes("admin")) return "admin";
-  for (const r of allowedRoles) {
-    if (roles.includes(r)) return r;
-  }
+function checkRoles(req: AuthenticatedStaffRequest, allowedRoles: (StaffRole | string)[]) {
+  if (!req.staff) throw new Error("Unauthorized: staff session required");
+  if (req.staff.role === "admin") return "admin";
+  if (allowedRoles.includes(req.staff.role)) return req.staff.role;
   throw new Error(`Unauthorized: requires one of ${allowedRoles.join(", ")}`);
 }
 
+// ─── AUTH / ROLES ────────────────────────────────────────────────────────────
+
 // @ts-ignore
-router.get("/is-admin", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/is-admin", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const roleDoc = await userRoles().findOne({ userId: req.user!.userId });
-    const isStaff = !!roleDoc && roleDoc.role !== "learner";
+    const isStaff = !!req.staff;
     res.json(isStaff);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -77,13 +75,12 @@ router.get("/is-admin", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 });
 
 // @ts-ignore
-router.get("/my-role", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/my-role", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const roleDoc = await userRoles().findOne({ userId: req.user!.userId });
-    const role = (roleDoc?.role as AppRole) || "learner";
+    const role = req.staff?.role || "admin";
     res.json({
       role,
-      isStaff: role !== "learner",
+      isStaff: true,
       isAdmin: role === "admin",
       isHr: role === "hr",
       isEducator: role === "educator",
@@ -94,13 +91,14 @@ router.get("/my-role", requireFirebaseAuth, async (req: AuthenticatedRequest, re
   }
 });
 
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
 // @ts-ignore
-router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/users", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const [
       profileDocs,
-      roleDocs,
       allCourseEnrollments,
       allCourses,
       allTrainings,
@@ -114,7 +112,6 @@ router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res)
       allProducts,
     ] = await Promise.all([
       profiles().find({}).sort({ createdAt: -1 }).toArray(),
-      userRoles().find({}).toArray(),
       getDb().collection("course_enrollments").find({}).toArray(),
       courses().find({}).toArray(),
       trainings().find({}).toArray(),
@@ -169,7 +166,7 @@ router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res)
 
       return {
         ...p,
-        roles: roleDocs.filter((r) => r.userId === p._id).map((r) => r.role),
+        roles: ["learner"],
         courses: userCourses,
         applications: userApplications,
         certificates: userCertificates,
@@ -184,10 +181,12 @@ router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
+// ─── COURSES ─────────────────────────────────────────────────────────────────
+
 // @ts-ignore
-router.get("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/courses", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkRoles(req, ["educator"]);
     const [docs, enrolls, profs] = await Promise.all([
       courses().find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("course_enrollments").find({}).toArray(),
@@ -224,9 +223,9 @@ router.get("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, re
 });
 
 // @ts-ignore
-router.post("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/courses", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["educator"]);
+    const role = checkRoles(req, ["educator"]);
     const now = new Date();
     
     let status = req.body.status || "draft";
@@ -238,7 +237,7 @@ router.post("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, r
       ...req.body,
       status,
       roadmap: req.body.roadmap ?? [],
-      createdBy: req.user!.userId,
+      createdBy: req.staff!.staffId,
       createdAt: now,
       updatedAt: now,
     };
@@ -251,9 +250,9 @@ router.post("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 });
 
 // @ts-ignore
-router.get("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/courses/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["educator"]);
+    checkRoles(req, ["educator"]);
     const id = String(req.params.id);
     const doc = await courses().findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Course not found" });
@@ -265,14 +264,14 @@ router.get("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest
 });
 
 // @ts-ignore
-router.put("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/courses/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["educator"]);
+    const role = checkRoles(req, ["educator"]);
     const id = String(req.params.id);
     const existing = await courses().findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    if (role !== "admin" && existing.createdBy !== req.user!.userId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this course" });
     }
 
@@ -293,9 +292,9 @@ router.put("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest
 });
 
 // @ts-ignore
-router.patch("/courses/:id/approve", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/courses/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await courses().updateOne(
       { _id: new ObjectId(id) },
@@ -309,9 +308,9 @@ router.patch("/courses/:id/approve", requireFirebaseAuth, async (req: Authentica
 });
 
 // @ts-ignore
-router.patch("/courses/:id/reject", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/courses/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     const { reason } = req.body;
     await courses().updateOne(
@@ -326,9 +325,9 @@ router.patch("/courses/:id/reject", requireFirebaseAuth, async (req: Authenticat
 });
 
 // @ts-ignore
-router.delete("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/courses/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await courses().deleteOne({ _id: new ObjectId(id) });
     await cacheDel(COURSES_CACHE_KEY);
@@ -338,10 +337,38 @@ router.delete("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequ
   }
 });
 
+// ─── INTERNSHIPS ─────────────────────────────────────────────────────────────
+
+function calculateTimeline(type: string) {
+  const now = new Date();
+  let year = now.getFullYear();
+  let openMonth = 0; // Jan = 0
+  
+  if (type === "Spring") openMonth = 1; // Feb 1
+  else if (type === "Summer") openMonth = 4; // May 1
+  else if (type === "Monsoon") openMonth = 6; // July 1
+  else if (type === "Winter") openMonth = 11; // Dec 1
+  
+  let openFrom = new Date(year, openMonth, 1);
+  if (type === "Spring") {
+    openFrom = new Date(year - 1, openMonth, 1);
+  }
+  
+  let openUntil = new Date(openFrom);
+  openUntil.setMonth(openUntil.getMonth() + 4);
+  
+  if (openUntil < now) {
+     openFrom.setFullYear(openFrom.getFullYear() + 1);
+     openUntil.setFullYear(openUntil.getFullYear() + 1);
+  }
+  
+  return { openFrom, openUntil };
+}
+
 // @ts-ignore
-router.get("/internships", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/internships", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const [docs, apps] = await Promise.all([
       getDb().collection("internships").find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("internship_applications").find({}).toArray(),
@@ -368,40 +395,10 @@ router.get("/internships", requireFirebaseAuth, async (req: AuthenticatedRequest
   }
 });
 
-// Helper to calculate timeline based on internship type (Summer, Winter, Spring, Monsoon)
-function calculateTimeline(type: string) {
-  const now = new Date();
-  let year = now.getFullYear();
-  let openMonth = 0; // Jan = 0
-  
-  if (type === "Spring") openMonth = 1; // Feb 1
-  else if (type === "Summer") openMonth = 4; // May 1
-  else if (type === "Monsoon") openMonth = 6; // July 1
-  else if (type === "Winter") openMonth = 11; // Dec 1
-  
-  let openFrom = new Date(year, openMonth, 1);
-  if (type === "Spring") {
-    // Spring opens in Dec of previous year
-    openFrom = new Date(year - 1, openMonth, 1);
-  }
-  
-  // Active for exactly 4 months from opening
-  let openUntil = new Date(openFrom);
-  openUntil.setMonth(openUntil.getMonth() + 4);
-  
-  // If the timeline has already passed entirely this year, schedule for next year
-  if (openUntil < now) {
-     openFrom.setFullYear(openFrom.getFullYear() + 1);
-     openUntil.setFullYear(openUntil.getFullYear() + 1);
-  }
-  
-  return { openFrom, openUntil };
-}
-
 // @ts-ignore
-router.post("/internships", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/internships", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["hr"]);
+    const role = checkRoles(req, ["hr"]);
     const now = new Date();
     const data = req.body;
     
@@ -429,7 +426,7 @@ router.post("/internships", requireFirebaseAuth, async (req: AuthenticatedReques
       status,
       openFrom,
       openUntil,
-      createdBy: req.user!.userId,
+      createdBy: req.staff!.staffId,
       createdAt: now,
       updatedAt: now,
     };
@@ -446,9 +443,9 @@ router.post("/internships", requireFirebaseAuth, async (req: AuthenticatedReques
 });
 
 // @ts-ignore
-router.get("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/internships/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const id = String(req.params.id);
     const doc = await getDb().collection("internships").findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
@@ -460,15 +457,15 @@ router.get("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedReq
 });
 
 // @ts-ignore
-router.put("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/internships/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["hr"]);
+    const role = checkRoles(req, ["hr"]);
     const id = String(req.params.id);
     const data = req.body;
-
+    
     const existing = await getDb().collection("internships").findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && existing.createdBy !== req.user!.userId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this" });
     }
 
@@ -476,11 +473,16 @@ router.put("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedReq
     if (role !== "admin" && status === "open") {
       status = "pending_approval";
     }
+
+    let openFrom = data.openFrom ? new Date(data.openFrom) : (existing.openFrom ? new Date(existing.openFrom) : new Date());
+    let openUntil = data.openUntil ? new Date(data.openUntil) : (existing.openUntil ? new Date(existing.openUntil) : new Date(Date.now() + 90 * 86400000));
     
-    const calculated = calculateTimeline(data.type || existing.type || "Summer");
-    const openFrom = data.openFrom ? new Date(data.openFrom) : (existing.openFrom ? new Date(existing.openFrom) : calculated.openFrom);
-    const openUntil = data.openUntil ? new Date(data.openUntil) : (existing.openUntil ? new Date(existing.openUntil) : calculated.openUntil);
-    
+    if (data.type && data.type !== existing.type && !data.openFrom && !data.openUntil) {
+      const calculated = calculateTimeline(data.type);
+      openFrom = calculated.openFrom;
+      openUntil = calculated.openUntil;
+    }
+
     await getDb().collection("internships").updateOne(
       { _id: new ObjectId(id) },
       { 
@@ -489,8 +491,8 @@ router.put("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedReq
           company: data.company || existing.company || "Enginow",
           location: data.location || data.locationType || existing.location || "Remote",
           locationType: data.locationType || data.location || existing.locationType || "Remote",
-          stipend: data.stipend ?? existing.stipend ?? "Unpaid",
-          duration: data.duration || existing.duration || "2 Months",
+          stipend: data.stipend !== undefined ? data.stipend : existing.stipend,
+          duration: data.duration !== undefined ? data.duration : existing.duration,
           perks: Array.isArray(data.perks) ? data.perks : (existing.perks || []),
           responsibilities: data.responsibilities !== undefined ? data.responsibilities : (existing.responsibilities || ""),
           requirements: Array.isArray(data.requirements) ? data.requirements : (existing.requirements || []),
@@ -511,9 +513,9 @@ router.put("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedReq
 });
 
 // @ts-ignore
-router.patch("/internships/:id/approve", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/internships/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await getDb().collection("internships").updateOne(
       { _id: new ObjectId(id) },
@@ -527,9 +529,9 @@ router.patch("/internships/:id/approve", requireFirebaseAuth, async (req: Authen
 });
 
 // @ts-ignore
-router.patch("/internships/:id/reject", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/internships/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     const { reason } = req.body;
     await getDb().collection("internships").updateOne(
@@ -544,9 +546,9 @@ router.patch("/internships/:id/reject", requireFirebaseAuth, async (req: Authent
 });
 
 // @ts-ignore
-router.delete("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/internships/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await getDb().collection("internships").deleteOne({ _id: new ObjectId(id) });
     await cacheDel(INTERNSHIPS_CACHE_KEY);
@@ -556,10 +558,12 @@ router.delete("/internships/:id", requireFirebaseAuth, async (req: Authenticated
   }
 });
 
+// ─── STATS ───────────────────────────────────────────────────────────────────
+
 // @ts-ignore
-router.get("/stats", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/stats", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["educator", "hr", "sales"]);
+    checkRoles(req, ["educator", "hr", "sales"]);
     const [totalUsers, totalCourses, totalEnrollments] = await Promise.all([
       profiles().countDocuments(),
       courses().countDocuments(),
@@ -571,52 +575,12 @@ router.get("/stats", requireFirebaseAuth, async (req: AuthenticatedRequest, res)
   }
 });
 
-// @ts-ignore
-router.post("/make-admin", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
-  try {
-    const { secretKey } = req.body;
-    if (secretKey !== "enginow-admin-2026") {
-      return res.status(403).json({ error: "Invalid secret key" });
-    }
-    await userRoles().updateOne(
-      { userId: req.user!.userId, role: "admin" },
-      { $setOnInsert: { userId: req.user!.userId, role: "admin" } },
-      { upsert: true }
-    );
-    res.json({ success: true, message: "Admin role granted!" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// ─── INTERNSHIP APPLICATIONS ─────────────────────────────────────────────────
 
 // @ts-ignore
-router.post("/set-role", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/internship-applications", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
-    const { targetUserId, role } = req.body;
-    if (role === "learner") {
-      await userRoles().deleteMany({ userId: targetUserId });
-    } else {
-      await userRoles().updateOne(
-        { userId: targetUserId },
-        { $set: { userId: targetUserId, role } },
-        { upsert: true }
-      );
-    }
-    res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// Internship Application Management
-// ─────────────────────────────────────────────────────────────
-
-// @ts-ignore
-router.get("/internship-applications", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
-  try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const { internshipId } = req.query;
 
     const filter: Record<string, unknown> = {};
@@ -624,7 +588,6 @@ router.get("/internship-applications", requireFirebaseAuth, async (req: Authenti
 
     const apps = await getDb().collection("internship_applications").find(filter).sort({ appliedAt: -1 }).toArray();
 
-    // Enrich with internship title
     const internshipIds = [...new Set(apps.map(a => a.internshipId?.toString()))];
     const internships = await getDb().collection("internships").find({
       _id: { $in: internshipIds.map(id => new ObjectId(id)) }
@@ -651,9 +614,9 @@ router.get("/internship-applications", requireFirebaseAuth, async (req: Authenti
 });
 
 // @ts-ignore
-router.patch("/internship-applications/:id/status", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/internship-applications/:id/status", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]); // Allow HR to update statuses
+    checkRoles(req, ["hr"]);
     const id = String(req.params.id);
     const { status } = req.body;
 
@@ -672,23 +635,20 @@ router.patch("/internship-applications/:id/status", requireFirebaseAuth, async (
   }
 });
 
-// Issue a certificate / document for an accepted intern
 // @ts-ignore
-router.post("/internship-applications/:id/certificate", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/internship-applications/:id/certificate", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const applicationId = String(req.params.id);
 
-    // Fetch the application to get userId, internshipId
     const app = await getDb().collection("internship_applications").findOne({ _id: new ObjectId(applicationId) });
     if (!app) return res.status(404).json({ error: "Application not found" });
     if (app.status !== "selected") return res.status(400).json({ error: "Can only issue certificates for selected applications" });
 
-    let { type, customDocumentBase64 } = req.body; // "completion" | "lor" | "loe"
+    let { type, customDocumentBase64 } = req.body;
     const validTypes = ["completion", "lor", "loe"];
     if (!validTypes.includes(type)) return res.status(400).json({ error: "Invalid certificate type" });
 
-    // Generate unique certificate ID: ENG-YYYY-XXXXXXXX
     const year = new Date().getFullYear();
     const uniquePart = Math.random().toString(36).substring(2, 10).toUpperCase();
     const certificateId = `ENG-${year}-${uniquePart}`;
@@ -705,7 +665,7 @@ router.post("/internship-applications/:id/certificate", requireFirebaseAuth, asy
       internshipDomain: internship?.domain ?? "",
       type,
       recipientName: app.fullName ?? "Intern",
-      issuedBy: req.user!.userId,
+      issuedBy: req.staff!.staffId,
       issuedAt: new Date(),
       verifyUrl: `/verify/${certificateId}`,
     };
@@ -719,7 +679,6 @@ router.post("/internship-applications/:id/certificate", requireFirebaseAuth, asy
       customDocumentBase64,
     };
 
-    // Upsert — only one cert of each type per application
     await getDb().collection("certificates").updateOne(
       { applicationId: new ObjectId(applicationId), type },
       { $set: finalCert },
@@ -732,11 +691,10 @@ router.post("/internship-applications/:id/certificate", requireFirebaseAuth, asy
   }
 });
 
-// Get certificates for an application
 // @ts-ignore
-router.get("/internship-applications/:id/certificates", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/internship-applications/:id/certificates", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkRoles(req, ["hr"]);
     const applicationId = String(req.params.id);
     const certs = await getDb().collection("certificates").find({ applicationId: new ObjectId(applicationId) }).toArray();
     const mapped = certs.map(c => ({ ...c, id: c._id.toString(), _id: undefined }));
@@ -746,12 +704,12 @@ router.get("/internship-applications/:id/certificates", requireFirebaseAuth, asy
   }
 });
 
-// ─── Trainings ─────────────────────────────────────────────────────────────
+// ─── TRAININGS ───────────────────────────────────────────────────────────────
 
 // @ts-ignore
-router.get("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/trainings", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkRoles(req, ["educator"]);
     const [docs, enrolls, profs] = await Promise.all([
       trainings().find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("course_enrollments").find({}).toArray(),
@@ -789,9 +747,9 @@ router.get("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest, 
 });
 
 // @ts-ignore
-router.post("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/trainings", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["educator"]);
+    const role = checkRoles(req, ["educator"]);
     const now = new Date();
     
     let status = req.body.status || "draft";
@@ -804,7 +762,7 @@ router.post("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest,
       status,
       roadmap: req.body.roadmap ?? [],
       youWillLearn: Array.isArray(req.body.youWillLearn) ? req.body.youWillLearn : [],
-      createdBy: req.user!.userId,
+      createdBy: req.staff!.staffId,
       createdAt: now,
       updatedAt: now,
     };
@@ -817,13 +775,13 @@ router.post("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest,
 });
 
 // @ts-ignore
-router.get("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["educator"]);
+    const role = checkRoles(req, ["educator"]);
     const id = String(req.params.id);
     const doc = await trainings().findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && doc.createdBy !== req.user!.userId) {
+    if (role !== "admin" && doc.createdBy !== req.staff!.staffId) {
       return res.status(403).json({ error: "Cannot view others' trainings" });
     }
     const { _id, ...rest } = doc;
@@ -834,14 +792,14 @@ router.get("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedReque
 });
 
 // @ts-ignore
-router.put("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["educator"]);
+    const role = checkRoles(req, ["educator"]);
     const id = String(req.params.id);
     
     const existing = await trainings().findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && existing.createdBy !== req.user!.userId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this" });
     }
 
@@ -862,9 +820,9 @@ router.put("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedReque
 });
 
 // @ts-ignore
-router.patch("/trainings/:id/approve", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/trainings/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await trainings().updateOne(
       { _id: new ObjectId(id) },
@@ -878,9 +836,9 @@ router.patch("/trainings/:id/approve", requireFirebaseAuth, async (req: Authenti
 });
 
 // @ts-ignore
-router.patch("/trainings/:id/reject", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/trainings/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     const { reason } = req.body;
     await trainings().updateOne(
@@ -895,9 +853,9 @@ router.patch("/trainings/:id/reject", requireFirebaseAuth, async (req: Authentic
 });
 
 // @ts-ignore
-router.delete("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await trainings().deleteOne({ _id: new ObjectId(id) });
     await cacheDel(TRAININGS_CACHE_KEY);
@@ -907,15 +865,12 @@ router.delete("/trainings/:id", requireFirebaseAuth, async (req: AuthenticatedRe
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// Careers Management
-// ─────────────────────────────────────────────────────────────
-const CAREERS_CACHE_KEY = "careers:all";
+// ─── CAREERS ─────────────────────────────────────────────────────────────────
 
 // @ts-ignore
-router.get("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/careers", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const [docs, apps] = await Promise.all([
       getDb().collection("careers").find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("career_applications").find({}).toArray(),
@@ -943,9 +898,9 @@ router.get("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, re
 });
 
 // @ts-ignore
-router.post("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/careers", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["hr"]);
+    const role = checkRoles(req, ["hr"]);
     const now = new Date();
     const data = req.body;
     
@@ -972,7 +927,7 @@ router.post("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, r
       status,
       openFrom,
       openUntil,
-      createdBy: req.user!.userId,
+      createdBy: req.staff!.staffId,
       createdAt: now,
       updatedAt: now,
     };
@@ -989,9 +944,9 @@ router.post("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 });
 
 // @ts-ignore
-router.get("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const id = String(req.params.id);
     const doc = await getDb().collection("careers").findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
@@ -1003,15 +958,15 @@ router.get("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest
 });
 
 // @ts-ignore
-router.put("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    const role = await requireRoles(req.user!.userId, ["hr"]);
+    const role = checkRoles(req, ["hr"]);
     const id = String(req.params.id);
     const data = req.body;
     
     const existing = await getDb().collection("careers").findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && existing.createdBy !== req.user!.userId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this" });
     }
 
@@ -1053,9 +1008,9 @@ router.put("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest
 });
 
 // @ts-ignore
-router.patch("/careers/:id/approve", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/careers/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await getDb().collection("careers").updateOne(
       { _id: new ObjectId(id) },
@@ -1069,9 +1024,9 @@ router.patch("/careers/:id/approve", requireFirebaseAuth, async (req: Authentica
 });
 
 // @ts-ignore
-router.patch("/careers/:id/reject", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/careers/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     const { reason } = req.body;
     await getDb().collection("careers").updateOne(
@@ -1086,9 +1041,9 @@ router.patch("/careers/:id/reject", requireFirebaseAuth, async (req: Authenticat
 });
 
 // @ts-ignore
-router.delete("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     const id = String(req.params.id);
     await getDb().collection("careers").deleteOne({ _id: new ObjectId(id) });
     await cacheDel(CAREERS_CACHE_KEY);
@@ -1098,10 +1053,12 @@ router.delete("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequ
   }
 });
 
+// ─── CAREER APPLICATIONS ─────────────────────────────────────────────────────
+
 // @ts-ignore
-router.get("/career-applications", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/career-applications", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const apps = await getDb().collection("career_applications").find({}).sort({ appliedAt: -1 }).toArray();
 
     const enriched = await Promise.all(apps.map(async (app) => {
@@ -1126,9 +1083,9 @@ router.get("/career-applications", requireFirebaseAuth, async (req: Authenticate
 });
 
 // @ts-ignore
-router.put("/career-applications/:id/status", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/career-applications/:id/status", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    checkRoles(req, ["hr"]);
     const { status } = req.body;
     if (!["pending", "reviewing", "shortlisted", "oa", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
@@ -1147,9 +1104,9 @@ router.put("/career-applications/:id/status", requireFirebaseAuth, async (req: A
 // ─── SHOP PRODUCTS ────────────────────────────────────────────────────────────
 
 // @ts-ignore
-router.get("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/products", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["sales"]);
+    checkRoles(req, ["sales"]);
     const docs = await products().find({}).sort({ createdAt: -1 }).toArray();
     res.json(docs.map((d) => {
       const { _id, ...rest } = d;
@@ -1161,9 +1118,9 @@ router.get("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 });
 
 // @ts-ignore
-router.post("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/products", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["sales"]);
+    checkRoles(req, ["sales"]);
     const { name, slug, shortDescription, description, price, discountedPrice, images, category, status } = req.body;
 
     const newDoc = {
@@ -1190,9 +1147,9 @@ router.post("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, 
 });
 
 // @ts-ignore
-router.put("/products/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/products/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["sales"]);
+    checkRoles(req, ["sales"]);
     const { name, slug, shortDescription, description, price, discountedPrice, images, category, status } = req.body;
 
     await products().updateOne(
@@ -1220,9 +1177,9 @@ router.put("/products/:id", requireFirebaseAuth, async (req: AuthenticatedReques
 });
 
 // @ts-ignore
-router.delete("/products/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/products/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireAdmin(req.user!.userId);
+    checkAdmin(req);
     await products().deleteOne({ _id: new ObjectId(String(req.params.id)) });
     cacheDel("shop:products");
     res.json({ success: true });
@@ -1234,16 +1191,14 @@ router.delete("/products/:id", requireFirebaseAuth, async (req: AuthenticatedReq
 // ─── SHOP ORDERS ────────────────────────────────────────────────────────────
 
 // @ts-ignore
-router.get("/orders", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/orders", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["sales"]);
+    checkRoles(req, ["sales"]);
     const docs = await orders().find({}).sort({ createdAt: -1 }).toArray();
     
-    // Fetch product details
     const prods = await products().find({}).toArray();
     const prodMap = new Map(prods.map(p => [p._id.toString(), p]));
 
-    // Fetch user details
     const profs = await profiles().find({}).toArray();
     const profMap = new Map(profs.map(p => [p._id, p]));
 
@@ -1270,9 +1225,9 @@ router.get("/orders", requireFirebaseAuth, async (req: AuthenticatedRequest, res
 });
 
 // @ts-ignore
-router.put("/orders/:id/tracking", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/orders/:id/tracking", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
   try {
-    await requireRoles(req.user!.userId, ["sales"]);
+    checkRoles(req, ["sales"]);
     const { trackingId, trackingSite, status } = req.body;
     const updateFields: any = { updatedAt: new Date() };
     if (trackingId !== undefined) updateFields.trackingId = trackingId;

@@ -1,20 +1,9 @@
 import { Router } from "express";
 import { getDb } from "../db";
-import { requireFirebaseAuth, AuthenticatedRequest } from "../middleware/auth";
+import { requireStaffAuth, AuthenticatedStaffRequest } from "./staffAuth";
 import { ObjectId } from "mongodb";
-import { userRoles, AppRole } from "../collections";
 
 const router = Router();
-
-async function requireRoles(userId: string, allowedRoles: AppRole[]) {
-  const roleDocs = await userRoles().find({ userId }).toArray();
-  const roles = roleDocs.map((r) => r.role);
-  if (roles.includes("admin")) return "admin";
-  for (const r of allowedRoles) {
-    if (roles.includes(r)) return r;
-  }
-  throw new Error(`Unauthorized: requires one of ${allowedRoles.join(", ")}`);
-}
 
 // @ts-ignore
 router.post("/submit", async (req, res) => {
@@ -41,10 +30,12 @@ router.post("/submit", async (req, res) => {
 });
 
 // @ts-ignore
-router.get("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    // Only HR, Sales, and Admin can read inquiries
-    await requireRoles(req.user!.userId, ["hr", "sales"]);
+    // Only HR, Sales, and Admin staff can read inquiries
+    if (!req.staff || !["admin", "hr", "sales"].includes(req.staff.role)) {
+      return res.status(403).json({ error: "Unauthorized: HR, Sales, or Admin role required" });
+    }
     const { category } = req.query;
 
     const filter: any = {};
@@ -63,9 +54,11 @@ router.get("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 // @ts-ignore
-router.patch("/:id/status", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.patch("/:id/status", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr", "sales"]);
+    if (!req.staff || !["admin", "hr", "sales"].includes(req.staff.role)) {
+      return res.status(403).json({ error: "Unauthorized: HR, Sales, or Admin role required" });
+    }
     const id = String(req.params.id);
     const { status } = req.body;
 

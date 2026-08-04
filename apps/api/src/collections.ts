@@ -3,7 +3,7 @@ import { getDb } from "./db";
 
 // ─── Document Types ───────────────────────────────────────────────────────────
 
-export type AppRole = "learner" | "educator" | "hr" | "sales" | "admin";
+export type StaffRole = "admin" | "hr" | "educator" | "sales";
 
 export interface ProfileDoc {
   _id: string; // Firebase uid
@@ -19,10 +19,16 @@ export interface ProfileDoc {
   updatedAt: Date;
 }
 
-export interface UserRoleDoc {
+export interface StaffAccountDoc {
   _id: ObjectId;
-  userId: string; // Firebase uid
-  role: AppRole;
+  email: string;
+  username: string;
+  passwordHash: string;
+  role: StaffRole;
+  name: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CourseModule {
@@ -152,7 +158,7 @@ export interface OrderDoc {
 // ─── Collection Accessors ────────────────────────────────────────────────────
 
 export const profiles = () => getDb().collection<ProfileDoc>("profiles");
-export const userRoles = () => getDb().collection<UserRoleDoc>("user_roles");
+export const staffAccounts = () => getDb().collection<StaffAccountDoc>("staff_accounts");
 export const courses = () => getDb().collection<CourseDoc>("courses");
 export const trainings = () => getDb().collection<TrainingDoc>("trainings");
 export const enrollments = () => getDb().collection<EnrollmentDoc>("course_enrollments");
@@ -208,12 +214,6 @@ export async function ensureUserProfile(uid: string, profileData?: {
       }
     }
   }
-  
-  await userRoles().updateOne(
-    { userId: uid, role: "learner" },
-    { $setOnInsert: { userId: uid, role: "learner" } },
-    { upsert: true },
-  );
 }
 
 function generateReferralCode(): string {

@@ -1,29 +1,21 @@
 import { Router } from "express";
 import { getDb } from "../db";
 import { requireFirebaseAuth, AuthenticatedRequest } from "../middleware/auth";
+import { requireStaffAuth, AuthenticatedStaffRequest } from "./staffAuth";
 import { ObjectId } from "mongodb";
-import { assessments, userRoles, AppRole } from "../collections";
 
 const router = Router();
 
-async function requireRoles(userId: string, allowedRoles: AppRole[]) {
-  const roleDocs = await userRoles().find({ userId }).toArray();
-  const roles = roleDocs.map((r) => r.role);
-  if (roles.includes("admin")) return "admin";
-  for (const r of allowedRoles) {
-    if (roles.includes(r)) return r;
-  }
-  throw new Error(`Unauthorized: requires one of ${allowedRoles.join(", ")}`);
-}
-
-// Create assessment (HR/Admin)
+// Create assessment (HR/Admin staff)
 // @ts-ignore
-router.post("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.post("/", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
+      return res.status(403).json({ error: "Unauthorized: HR or Admin role required" });
+    }
     const doc = {
       ...req.body,
-      createdBy: req.user!.userId,
+      createdBy: req.staff.staffId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -34,7 +26,7 @@ router.post("/", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => 
   }
 });
 
-// Get assessment to take (Learner)
+// Get assessment to take (Learner firebase user)
 // @ts-ignore
 router.get("/:id/take", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
@@ -67,7 +59,7 @@ router.get("/:id/take", requireFirebaseAuth, async (req: AuthenticatedRequest, r
   }
 });
 
-// Submit assessment results (Learner)
+// Submit assessment results (Learner firebase user)
 // @ts-ignore
 router.post("/:id/submit", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
@@ -88,11 +80,13 @@ router.post("/:id/submit", requireFirebaseAuth, async (req: AuthenticatedRequest
   }
 });
 
-// Get results (HR/Admin)
+// Get results (HR/Admin staff)
 // @ts-ignore
-router.get("/:id/results", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/:id/results", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
+      return res.status(403).json({ error: "Unauthorized: HR or Admin role required" });
+    }
     const id = String(req.params.id);
     const results = await getDb().collection("assessment_results").find({ assessmentId: new ObjectId(id) }).sort({ submittedAt: -1 }).toArray();
     res.json(results.map(r => ({ ...r, id: r._id.toString(), _id: undefined })));
@@ -102,9 +96,11 @@ router.get("/:id/results", requireFirebaseAuth, async (req: AuthenticatedRequest
 });
 
 // @ts-ignore
-router.put("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.put("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
+      return res.status(403).json({ error: "Unauthorized: HR or Admin role required" });
+    }
     const id = String(req.params.id);
     await getDb().collection("assessments").updateOne(
       { _id: new ObjectId(id) },
@@ -117,9 +113,11 @@ router.put("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) =
 });
 
 // @ts-ignore
-router.delete("/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.delete("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]);
+    if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
+      return res.status(403).json({ error: "Unauthorized: HR or Admin role required" });
+    }
     const id = String(req.params.id);
     await getDb().collection("assessments").deleteOne({ _id: new ObjectId(id) });
     res.json({ success: true });

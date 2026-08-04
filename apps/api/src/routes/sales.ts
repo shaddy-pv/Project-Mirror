@@ -1,21 +1,15 @@
 import { Router } from "express";
 import { getDb } from "../db";
-import { requireFirebaseAuth, AuthenticatedRequest } from "../middleware/auth";
-import { userRoles } from "../collections";
+import { requireStaffAuth, AuthenticatedStaffRequest } from "./staffAuth";
 
 const router = Router();
 
-async function requireSalesOrAdmin(userId: string) {
-  const roleDocs = await userRoles().find({ userId }).toArray();
-  const roles = roleDocs.map(r => r.role);
-  if (roles.includes("admin") || roles.includes("sales")) return true;
-  throw new Error("Unauthorized: sales or admin role required");
-}
-
 // @ts-ignore
-router.get("/dashboard", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+router.get("/dashboard", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    await requireSalesOrAdmin(req.user!.userId);
+    if (!req.staff || (req.staff.role !== "admin" && req.staff.role !== "sales")) {
+      return res.status(403).json({ error: "Unauthorized: sales or admin role required" });
+    }
 
     const [enrollments, orders, referrals] = await Promise.all([
       getDb().collection("course_enrollments").find({}).toArray(),
@@ -24,11 +18,8 @@ router.get("/dashboard", requireFirebaseAuth, async (req: AuthenticatedRequest, 
     ]);
 
     const totalEnrollments = enrollments.length;
-    // Calculate total revenue from orders. 
-    // Wait, shop_orders has an amount field. Let's sum it up.
     const totalOrderRevenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
     
-    // Tally referral code usage
     const totalReferralUses = referrals.length;
     const totalReferralDiscounts = referrals.reduce((sum, ref) => sum + (ref.discountApplied || 0), 0);
 

@@ -7,7 +7,6 @@ import { auth as oauthService } from "@/integrations/oauth";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/providers/auth-provider";
-import { getUserRole } from "@/lib/admin.functions";
 import { WebGLBackground } from "@/components/WebGLBackground";
 import { getPlatformStats, getLatestCohort } from "@/lib/public.functions";
 import { listPublishedCourses } from "@/lib/courses.functions";
@@ -19,12 +18,6 @@ function Nav() {
   const auth = useAuthContext();
   const queryClient = useQueryClient();
   const router = useRouter();
-
-  const { data: roleInfo } = useQuery({
-    queryKey: ["userRole", auth.user?.uid],
-    queryFn: () => getUserRole(),
-    enabled: auth.isAuthenticated && !!auth.user?.uid,
-  });
 
   const links = [
     ["Courses", "/courses"],
@@ -40,21 +33,6 @@ function Nav() {
     queryClient.clear();
     await oauthService.signOut();
     router.push("/auth");
-  };
-
-  const getPanelLabel = (role?: string) => {
-    switch (role) {
-      case "admin":
-        return "Admin Panel";
-      case "hr":
-        return "HR Panel";
-      case "educator":
-        return "Educator Panel";
-      case "sales":
-        return "Sales Panel";
-      default:
-        return "Staff Panel";
-    }
   };
 
   return (
@@ -82,16 +60,6 @@ function Nav() {
             <div className="h-8 w-28 animate-pulse rounded-full" style={{ background: "rgba(21,23,28,0.06)" }} />
           ) : auth.isAuthenticated ? (
             <>
-              {roleInfo && roleInfo.role !== "learner" && (
-                <a href={`${process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:8080"}?role=${roleInfo.role}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition-all shadow-sm sm:inline-flex hover:opacity-90"
-                  style={{ background: "var(--amber)", color: "var(--ink)", border: "0.8px solid rgba(21,23,28,0.12)" }}
-                >
-                  {getPanelLabel(roleInfo.role)}
-                </a>
-              )}
               <Link href="/learner-dashboard"
                 className="hidden items-center gap-1.5 text-[13.5px] sm:inline-flex"
                 style={{ color: "var(--ink-soft)" }}
