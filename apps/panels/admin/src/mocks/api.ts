@@ -490,7 +490,7 @@ export async function updateCareerApplicationStatus(id: string, status: string, 
 }
 
 export async function getOAResultAnalysis(assessmentId: string, userId: string) {
-  return fetchApi(`/admin/assessments/${assessmentId}/results/${userId}`);
+  return fetchApi(`/assessments/${assessmentId}/results/${userId}`);
 }
 
 // ─── Assessments ──────────────────────────────────────────────────────────────

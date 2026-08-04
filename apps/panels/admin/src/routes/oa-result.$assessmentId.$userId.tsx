@@ -54,8 +54,15 @@ function OAResultPage() {
 
   const { assessment, session } = data;
   const totalScore = session.totalScore || 0;
-  const maxScore = 25; // As per requirements
-  const isPassed = totalScore >= 18; // Just visual indicator (e.g., >= 70%)
+  const maxScore = assessment.modules?.reduce((sum: number, m: any) => sum + (m.questions?.length || 0), 0) || 25;
+  const isPassed = totalScore >= (maxScore * 0.7);
+  
+  const timeSpentSeconds = session.createdAt && session.completedAt
+    ? Math.max(0, Math.round((new Date(session.completedAt).getTime() - new Date(session.createdAt).getTime()) / 1000))
+    : 0;
+  const timeStr = timeSpentSeconds > 120 
+    ? `${Math.round(timeSpentSeconds / 60)}m` 
+    : `${timeSpentSeconds}s`;
 
   const handleMark = (status: "oa-cleared" | "oa-failed") => {
     if (!appId || !appType) {
@@ -118,7 +125,7 @@ function OAResultPage() {
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Time Spent</p>
               <p className="text-3xl font-bold text-foreground mt-1">
-                {Object.values(session.timeTaken || {}).reduce((sum: number, t: any) => sum + (t as number), 0)}s
+                {timeStr}
               </p>
             </div>
           </div>
@@ -152,8 +159,10 @@ function OAResultPage() {
               <h2 className="mb-6 text-xl font-bold text-foreground border-b pb-2">{mod.title}</h2>
               <div className="space-y-4">
                 {mod.questions.map((q: any, qIdx: number) => {
-                  const userAnswer = session.answers?.[mIdx]?.[qIdx] ?? null;
-                  const isCorrect = userAnswer === q.correctAnswer;
+                  const moduleAnswerList = session.moduleAnswers?.[mIdx] || [];
+                  const answerObj = moduleAnswerList.find((a: any) => a.questionIndex === qIdx);
+                  const userAnswer = answerObj ? answerObj.selected : null;
+                  const isCorrect = answerObj ? answerObj.isCorrect : false;
                   
                   return (
                     <div key={qIdx} className={`rounded-xl border p-5 ${isCorrect ? "bg-emerald-50/30 border-emerald-100" : "bg-red-50/30 border-red-100"}`}>

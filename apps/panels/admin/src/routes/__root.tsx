@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -129,19 +130,25 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const isAuthenticated = useSession((s) => s.isAuthenticated);
   const [mounted, setMounted] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const isAuthToUse = mounted ? isAuthenticated : false;
+  const isOAResult = pathname.startsWith("/oa-result");
 
   return (
     <QueryClientProvider client={queryClient}>
       {isAuthToUse ? (
-        <AppShell>
+        isOAResult ? (
           <Outlet />
-        </AppShell>
+        ) : (
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        )
       ) : (
         <PanelLoginPage />
       )}
