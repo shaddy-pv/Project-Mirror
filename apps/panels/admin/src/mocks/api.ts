@@ -482,10 +482,10 @@ export async function listCareerApplications(careerId?: string): Promise<Applica
   return fetchApi(`/admin/career-applications${qs}`);
 }
 
-export async function updateCareerApplicationStatus(id: string, status: string, assessmentId?: string) {
-  return fetchApi(`/admin/career-applications/${id}/status`, {
+export async function updateCareerApplicationStatus(appId: string, status: string, assessmentId?: string, extra?: { interviewDate?: string, interviewLink?: string }) {
+  return fetchApi(`/admin/career-applications/${appId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, ...(assessmentId ? { assessmentId } : {}) }),
+    body: JSON.stringify({ status, assessmentId, ...extra }),
   });
 }
 

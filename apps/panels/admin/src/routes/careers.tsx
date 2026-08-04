@@ -113,11 +113,15 @@ function AppStatusBadge({ status }: { status: string }) {
 
 function ApplicantSheet({ app, onClose, onStatusChange }: {
   app: Application; onClose: () => void;
-  onStatusChange: (id: string, status: string, assessmentId?: string) => Promise<void>;
+  onStatusChange: (id: string, status: string, assessmentId?: string, extra?: { interviewDate?: string, interviewLink?: string }) => Promise<void>;
 }) {
   const [updating, setUpdating] = useState(false);
   const [pendingOA, setPendingOA] = useState(false);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
+
+  const [pendingInterview, setPendingInterview] = useState(false);
+  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewLink, setInterviewLink] = useState("");
 
   const { data: allAssessments = [] } = useQuery({
     queryKey: ["assessments"],
@@ -128,10 +132,10 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
     a => a.listingType === "career" && a.listingId === app.careerId
   );
 
-  const handle = async (status: string, assessmentId?: string) => {
+  const handle = async (status: string, assessmentId?: string, extra?: { interviewDate?: string, interviewLink?: string }) => {
     setUpdating(true);
-    try { await onStatusChange(app.id, status, assessmentId); }
-    finally { setUpdating(false); setPendingOA(false); setSelectedAssessmentId(""); }
+    try { await onStatusChange(app.id, status, assessmentId, extra); }
+    finally { setUpdating(false); setPendingOA(false); setSelectedAssessmentId(""); setPendingInterview(false); setInterviewDate(""); setInterviewLink(""); }
   };
 
   return (
@@ -157,7 +161,14 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
               {(["pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "interview", "selected", "rejected"] as const).map(s => (
                 s === "oa" ? (
                   <button key={s}
-                    onClick={() => { setPendingOA(true); setSelectedAssessmentId(""); }}
+                    onClick={() => { setPendingOA(true); setPendingInterview(false); setSelectedAssessmentId(""); }}
+                    disabled={updating || app.status === s}
+                    className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ${APP_STATUS_CFG[s]?.cls}`}>
+                    {APP_STATUS_CFG[s]?.label}
+                  </button>
+                ) : s === "interview" ? (
+                  <button key={s}
+                    onClick={() => { setPendingInterview(true); setPendingOA(false); }}
                     disabled={updating || app.status === s}
                     className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ${APP_STATUS_CFG[s]?.cls}`}>
                     {APP_STATUS_CFG[s]?.label}
@@ -193,6 +204,41 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
                     Confirm & Send OA
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setPendingOA(false)} className="text-xs">Cancel</Button>
+                </div>
+              </div>
+            )}
+            {pendingInterview && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <p className="text-[12px] font-semibold text-amber-800">Schedule Interview</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-medium text-amber-700">Date & Time</label>
+                    <input 
+                      type="datetime-local" 
+                      value={interviewDate}
+                      onChange={(e) => setInterviewDate(e.target.value)}
+                      className="flex h-8 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-amber-700">Meeting Link</label>
+                    <input 
+                      type="url" 
+                      placeholder="e.g. Google Meet / Zoom link"
+                      value={interviewLink}
+                      onChange={(e) => setInterviewLink(e.target.value)}
+                      className="flex h-8 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" 
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" disabled={!interviewDate || !interviewLink || updating}
+                    onClick={() => handle("interview", undefined, { interviewDate, interviewLink })}
+                    className="gap-1.5 flex-1 text-xs bg-amber-600 hover:bg-amber-700 text-white">
+                    {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Confirm Interview
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setPendingInterview(false)} className="text-xs border-amber-200 text-amber-700 hover:bg-amber-100">Cancel</Button>
                 </div>
               </div>
             )}
@@ -301,8 +347,8 @@ function ApplicationsTab() {
     return matchStatus && matchSearch;
   });
 
-  const handleStatusChange = async (id: string, status: string, assessmentId?: string) => {
-    await updateCareerApplicationStatus(id, status, assessmentId);
+  const handleStatusChange = async (id: string, status: string, assessmentId?: string, extra?: { interviewDate?: string, interviewLink?: string }) => {
+    await updateCareerApplicationStatus(id, status, assessmentId, extra);
     qc.invalidateQueries({ queryKey: ["career-applications"] });
     if (selectedApp?.id === id) setSelectedApp((p) => p ? { ...p, status: status as any } : null);
     toast.success("Status updated");

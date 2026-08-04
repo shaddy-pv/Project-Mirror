@@ -1315,7 +1315,7 @@ router.patch("/career-applications/:id/status", requireStaffAuth, async (req: Au
   try {
     checkRoles(req, ["hr"]);
     const id = String(req.params.id);
-    const { status, assessmentId } = req.body;
+    const { status, assessmentId, interviewDate, interviewLink } = req.body;
 
     if (!["pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "interview", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status." });
@@ -1326,6 +1326,10 @@ router.patch("/career-applications/:id/status", requireStaffAuth, async (req: Au
 
     const updateDoc: any = { status, updatedAt: new Date() };
     if (status === "oa" && assessmentId) updateDoc.assessmentId = assessmentId;
+    if (status === "interview") {
+      if (interviewDate) updateDoc.interviewDate = interviewDate;
+      if (interviewLink) updateDoc.interviewLink = interviewLink;
+    }
 
     const app = await getDb().collection("career_applications").findOneAndUpdate(
       { _id: new ObjectId(id) },

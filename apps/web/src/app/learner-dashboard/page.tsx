@@ -634,6 +634,28 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Interview Details */}
+                      {app.status === "interview" && (app as any).interviewDate && (app as any).interviewLink && (
+                        <div className="mt-3 px-1">
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                            <h4 className="text-[13.5px] font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4" /> Interview Scheduled
+                            </h4>
+                            <p className="text-[12.5px] text-amber-800 mb-3">
+                              {new Date((app as any).interviewDate).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                            </p>
+                            <a
+                              href={(app as any).interviewLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-[13px] font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                            >
+                              Join Meeting
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })}
