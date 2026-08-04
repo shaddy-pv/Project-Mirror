@@ -1244,4 +1244,66 @@ router.put("/orders/:id/tracking", requireStaffAuth, async (req: AuthenticatedSt
   }
 });
 
+
+// ─── CAREER APPLICATIONS ─────────────────────────────────────────────────────
+
+// @ts-ignore
+router.get("/career-applications", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkRoles(req, ["hr"]);
+    const { careerId } = req.query;
+
+    const filter: Record<string, unknown> = {};
+    if (careerId) filter.careerId = new ObjectId(String(careerId));
+
+    const apps = await getDb().collection("career_applications").find(filter).sort({ appliedAt: -1 }).toArray();
+
+    const careerIds = [...new Set(apps.map(a => a.careerId?.toString()).filter(Boolean))];
+    const careers = await getDb().collection("careers").find({
+      _id: { $in: careerIds.map(id => new ObjectId(id!)) }
+    }).toArray();
+    const careerMap = Object.fromEntries(careers.map(c => [c._id.toString(), c]));
+
+    const enriched = apps.map((app) => {
+      const { _id, ...rest } = app;
+      const career = careerMap[app.careerId?.toString()];
+      return {
+        ...rest,
+        id: _id.toString(),
+        careerId: app.careerId?.toString(),
+        careerTitle: career?.title ?? "Unknown",
+        careerDomain: career?.domain ?? "",
+        careerType: career?.type ?? "",
+      };
+    });
+
+    res.json(enriched);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.patch("/career-applications/:id/status", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkRoles(req, ["hr"]);
+    const id = String(req.params.id);
+    const { status } = req.body;
+
+    if (!["pending", "shortlisted", "interview", "selected", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status." });
+    }
+
+    await getDb().collection("career_applications").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status, updatedAt: new Date() } }
+    );
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+

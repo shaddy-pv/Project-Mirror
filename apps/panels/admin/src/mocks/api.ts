@@ -418,3 +418,70 @@ export async function updateOrderTracking(id: string, trackingId: string, status
     body: JSON.stringify({ trackingId, status, trackingSite })
   });
 }
+
+// ─── INTERNSHIP APPLICATIONS ──────────────────────────────────────────────────
+
+export interface Application {
+  id: string;
+  internshipId?: string;
+  internshipTitle?: string;
+  internshipDomain?: string;
+  careerId?: string;
+  careerTitle?: string;
+  careerDomain?: string;
+  status: "pending" | "shortlisted" | "oa" | "interview" | "selected" | "rejected";
+  appliedAt: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  github?: string;
+  cityState?: string;
+  experience?: string;
+  education?: string;
+  college?: string;
+  graduationYear?: string;
+  semester?: string;
+  cgpa?: string;
+  skills?: string;
+  availability?: string;
+  resumeUrl?: string;
+  coverLetter?: string;
+}
+
+export async function listInternshipApplications(internshipId?: string): Promise<Application[]> {
+  const qs = internshipId ? `?internshipId=${internshipId}` : "";
+  return fetchApi(`/admin/internship-applications${qs}`);
+}
+
+export async function updateInternshipApplicationStatus(id: string, status: string) {
+  return fetchApi(`/admin/internship-applications/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function issueCertificate(applicationId: string, type: string, customDocumentBase64?: string) {
+  return fetchApi(`/admin/internship-applications/${applicationId}/certificate`, {
+    method: "POST",
+    body: JSON.stringify({ type, customDocumentBase64 }),
+  });
+}
+
+export async function getIssuedCertificates(applicationId: string) {
+  return fetchApi(`/admin/internship-applications/${applicationId}/certificates`);
+}
+
+// ─── CAREER APPLICATIONS ──────────────────────────────────────────────────────
+
+export async function listCareerApplications(careerId?: string): Promise<Application[]> {
+  const qs = careerId ? `?careerId=${careerId}` : "";
+  return fetchApi(`/admin/career-applications${qs}`);
+}
+
+export async function updateCareerApplicationStatus(id: string, status: string) {
+  return fetchApi(`/admin/career-applications/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}

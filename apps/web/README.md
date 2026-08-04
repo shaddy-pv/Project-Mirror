@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Enginow — Public Website
 
-## Getting Started
+This is the public-facing Next.js 16 frontend for the Enginow engineering education platform. 
 
-First, run the development server:
+It contains the main marketing pages, course catalogs, career/internship listings, shop, blog, and the authenticated Learner Dashboard.
+
+## Development
 
 ```bash
+# From the monorepo root
+npm run dev:web
+
+# Or from this directory
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The website will start on [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework:** Next.js 16 (App Router)
+- **Styling:** Tailwind CSS v4 & Radix UI Primitives
+- **State/Data:** Zustand, TanStack Query
+- **Authentication:** JWT tokens stored in cookies/localStorage, authenticated against the shared Express API.
 
-## Learn More
+## Key Directories
 
-To learn more about Next.js, take a look at the following resources:
+- `/src/app` — Next.js App Router pages (Home, Courses, Shop, Blogs, etc.)
+- `/src/components` — Reusable React components and UI sections.
+- `/src/lib` — Utilities, types, and API wrapper functions.
+- `/src/store` — Zustand state stores (e.g., auth store).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This app is configured to be deployed on Vercel. See the `vercel.json` file in the monorepo root for routing configurations.

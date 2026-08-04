@@ -35,12 +35,9 @@ Each app runs on its own port. Open separate terminal tabs.
 |---------|-----|-------------|
 | `npm run dev:api` | Express API (`apps/api/`) | 5000 |
 | `npm run dev:web` | Next.js public site (`apps/web/`) | 3000 |
-| `npm run dev:admin` | Admin panel (`apps/panels/admin/`) | 3001 |
-| `npm run dev:educator` | Educator panel (`apps/panels/educator/`) | 3002 |
-| `npm run dev:hr` | HR panel (`apps/panels/hr/`) | 3003 |
-| `npm run dev:sales` | Sales panel (`apps/panels/sales/`) | 3004 |
+| `npm run dev:admin` | Admin panel (`apps/panels/admin/`) | 8080 |
 
-> **Note:** Panels send `x-mock-role` headers to the API in development, bypassing Firebase Auth. This means you can test them without a real Firebase login.
+> **Note:** The Admin panel handles all staff roles (Admin, HR, Sales, Educator). It uses JWT authentication and filters views based on the logged-in user's role.
 
 ---
 
@@ -50,10 +47,8 @@ Each app runs on its own port. Open separate terminal tabs.
 enginow/
 ├── apps/web/    Next.js 16 — public-facing website (courses, blogs, careers, shop)
 ├── apps/api/     Express + MongoDB — shared REST API for all apps
-├── admin/       TanStack Start — Admin role dashboard
-├── educator/    TanStack Start — Educator role dashboard
-├── hr/          TanStack Start — HR role dashboard
-└── sales/       TanStack Start — Sales role dashboard
+└── apps/panels/
+    └── admin/       TanStack Start — Unified Staff Portal for all roles
 ```
 
 ---

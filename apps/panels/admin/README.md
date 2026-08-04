@@ -22,8 +22,8 @@ Runs on **port 8080** by default. Requires the backend API running on port 5000.
 | `/` | Dashboard overview | All |
 | `/approvals` | Pending course & blog approvals | Admin |
 | `/courses` | Course & training management | Admin, Educator |
-| `/internships` | Internship postings & applications | Admin, HR |
-| `/careers` | Job postings & applications | Admin, HR |
+| `/internships` | Internship postings, application tracking, & document generation | Admin, HR |
+| `/careers` | Job postings, application tracking, & document generation | Admin, HR |
 | `/shop` | Store management | Admin, Sales |
 | `/blogs` | Blog management | All |
 | `/users` | User accounts & referral codes | Admin |

@@ -63,11 +63,11 @@ npm run dev:admin   # Start Staff Portal (port 8080)
 - **Unified Staff Portal** — Role-based access (Admin, HR, Sales, Educator) in a single panel.
 - **Content Approval Workflow** — `draft → pending_approval → live` state machine for courses, trainings, blogs.
 - **Role-Based Access Control** — Staff logins via JWT and database `user_roles` collection.
-- **PDF Generation** — PDFKit-powered certificates, Letters of Recommendation, and offer letters.
+- **Document Generation** — PDFKit-powered certificates, Letters of Recommendation, and Letters of Experience generated directly from the admin panel for selected internship/career applicants.
 - **Certificate Verification** — Public endpoint to verify issued credential IDs.
 - **Referral System** — Unique referral codes, discount tracking, usage limits.
 - **Shop** — Razorpay-integrated product catalogue and orders.
-- **Internship Pipeline** — HR-managed stages (Applied → Shortlisted → OA → Selected).
+- **Applicant Pipeline** — HR-managed stages (Applied → Shortlisted → OA/Interview → Selected) built into the Internships and Careers routes.
 
 ---
 
