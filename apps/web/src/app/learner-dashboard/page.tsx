@@ -292,12 +292,15 @@ function ApplicationDetailDrawer({ app, onClose }: { app: ApplicationItem; onClo
 }
 
 export default function DashboardPage() {
-  const { data: enrollments } = useSuspenseQuery(enrollmentsQueryOptions);
-  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: () => getMyProfile() });
-  const { data: applications } = useQuery({ queryKey: ["my-applications"], queryFn: () => getMyInternshipApplications() });
-  const { data: careerApps = [] } = useQuery({ queryKey: ["my-career-applications"], queryFn: () => getMyCareerApplications() });
-  const { data: myOrders = [] } = useQuery({ queryKey: ["my-orders"], queryFn: () => getMyOrders() });
   const auth = useAuthContext();
+  const isEnabled = !auth.isLoading && auth.isAuthenticated;
+
+  const { data: enrollments = [] } = useQuery({ ...enrollmentsQueryOptions, enabled: isEnabled });
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: () => getMyProfile(), enabled: isEnabled });
+  const { data: applications = [] } = useQuery({ queryKey: ["my-applications"], queryFn: () => getMyInternshipApplications(), enabled: isEnabled });
+  const { data: careerApps = [] } = useQuery({ queryKey: ["my-career-applications"], queryFn: () => getMyCareerApplications(), enabled: isEnabled });
+  const { data: myOrders = [] } = useQuery({ queryKey: ["my-orders"], queryFn: () => getMyOrders(), enabled: isEnabled });
+
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"courses" | "internships" | "careers" | "orders">("courses");
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
@@ -306,6 +309,10 @@ export default function DashboardPage() {
     if (!profile?.referralCode) return;
     const url = `${window.location.origin}/courses?ref=${profile.referralCode}`;
     navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); });
+  }
+
+  if (auth.isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#FFFFFF]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   const inProgress = (enrollments as EnrollmentItem[]).filter((e) => e.progress > 0 && e.progress < 100);
