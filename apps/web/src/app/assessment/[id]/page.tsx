@@ -141,8 +141,14 @@ export default function AssessmentPage() {
   const [answers, setAnswers] = useState<Record<number, Record<number, number>>>({});
   const [submittingModule, setSubmittingModule] = useState(false);
   const [completedModules, setCompletedModules] = useState<number[]>([]);
-  const [moduleTimeLimits, setModuleTimeLimits] = useState<Record<number, number>>({});
   const [timerKey, setTimerKey] = useState(0);
+
+  const handleBack = useCallback(() => {
+    window.close();
+    setTimeout(() => {
+      window.location.href = "/learner-dashboard";
+    }, 150);
+  }, []);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["assessment-info", id],
@@ -236,7 +242,7 @@ export default function AssessmentPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <AlertCircle className="h-10 w-10 text-red-400" />
         <p className="text-[15px] font-semibold" style={{ color: "var(--ink)" }}>Assessment not found or access denied.</p>
-        <a href="/learner-dashboard" className="text-[13px] underline" style={{ color: "var(--ink-mute)" }}>← Back to dashboard</a>
+        <button onClick={handleBack} className="text-[13px] underline" style={{ color: "var(--ink-mute)" }}>← Back to dashboard</button>
       </div>
     );
   }
@@ -261,12 +267,13 @@ export default function AssessmentPage() {
           <p className="mt-3 text-[14px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
             Your responses have been recorded. Our team will review your submission and get back to you shortly.
           </p>
-          <a href="/learner-dashboard"
+          <button
+            onClick={handleBack}
             className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[14px] font-semibold text-white transition-all"
             style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)" }}
           >
             Back to Dashboard <ArrowRight className="h-4 w-4" />
-          </a>
+          </button>
         </motion.div>
       </main>
     );
@@ -309,9 +316,9 @@ export default function AssessmentPage() {
     return (
       <main className="min-h-screen px-6 py-16" style={{ background: "linear-gradient(135deg,#faf5ff,#f5f3ff)" }}>
         <div className="mx-auto max-w-2xl">
-          <a href="/learner-dashboard" className="inline-flex items-center gap-1.5 text-[13px] mb-8 transition-colors" style={{ color: "var(--ink-mute)" }}>
+          <button onClick={handleBack} className="inline-flex items-center gap-1.5 text-[13px] mb-8 transition-colors hover:opacity-80" style={{ color: "var(--ink-mute)" }}>
             <ChevronLeft className="h-3.5 w-3.5" /> Back to dashboard
-          </a>
+          </button>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
             <div className="rounded-3xl bg-white shadow-xl p-8 mb-6">
               <div className="flex items-center gap-3 mb-5">
