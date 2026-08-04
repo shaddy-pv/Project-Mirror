@@ -320,7 +320,43 @@ router.post("/:id/complete", requireFirebaseAuth, async (req: AuthenticatedReque
       { $set: { completedAt: new Date(), totalScore, updatedAt: new Date() } }
     );
 
+    // Update related applications to signal the dashboard
+    const db = getDb();
+    await db.collection("internship_applications").updateMany(
+      { assessmentId: id, userId },
+      { $set: { hasCompletedOA: true, oaSubmittedAt: new Date() } }
+    );
+    await db.collection("career_applications").updateMany(
+      { assessmentId: id, userId },
+      { $set: { hasCompletedOA: true, oaSubmittedAt: new Date() } }
+    );
+
     res.json({ success: true, totalScore });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Admin: Get specific user's detailed OA result ────────────────────────────
+// @ts-ignore
+router.get("/:id/results/:userId", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
+  try {
+    const { id, userId } = req.params;
+    const db = getDb();
+    
+    // Fetch the assessment (to get correct answers and questions)
+    const assessment = await db.collection("assessments").findOne({ _id: new ObjectId(id) });
+    if (!assessment) return res.status(404).json({ error: "Assessment not found" });
+
+    // Fetch the session
+    const session = await db.collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    if (!session) return res.status(404).json({ error: "Session not found for user" });
+
+    // Send back a combined analysis payload
+    res.json({
+      assessment,
+      session
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -38,8 +38,9 @@ interface ApplicationItem {
   id: string;
   internshipId?: string;
   careerId?: string;
-  status: "pending" | "accepted" | "rejected" | "shortlisted" | "oa" | "selected";
+  status: "pending" | "accepted" | "rejected" | "shortlisted" | "oa" | "selected" | "oa-cleared" | "oa-failed";
   assessmentId?: string;
+  hasCompletedOA?: boolean;
   appliedAt: string;
   fullName?: string;
   email?: string;
@@ -88,6 +89,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string;
   selected:    { label: "Selected",     color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500",  icon: CheckCircle2 },
   shortlisted: { label: "Shortlisted",  color: "bg-blue-50 text-blue-700",      dot: "bg-blue-400",     icon: Star },
   oa:          { label: "OA Pending",   color: "bg-purple-50 text-purple-700",   dot: "bg-purple-500",   icon: Clock3 },
+  "oa-cleared": { label: "OA Cleared",  color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500",  icon: CheckCircle2 },
+  "oa-failed":  { label: "Not Selected", color: "bg-red-50 text-red-700",        dot: "bg-red-500",      icon: XCircle },
+  interview:    { label: "Interview Scheduled", color: "bg-amber-50 text-amber-700", dot: "bg-amber-500",  icon: Clock3 },
   rejected:    { label: "Not Selected", color: "bg-red-50 text-red-600",        dot: "bg-red-400",      icon: XCircle },
 };
 
@@ -507,8 +511,8 @@ export default function DashboardPage() {
                           <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-mute)" }} />
                         </div>
                       </div>
-                      {/* OA Round Button */}
-                      {app.status === "oa" && app.assessmentId && (
+                      {/* OA Round Button / Status */}
+                      {app.status === "oa" && app.assessmentId && !app.hasCompletedOA && (
                         <div className="mt-2 px-1">
                           <a
                             href={`/assessment/${app.assessmentId}`}
@@ -521,6 +525,14 @@ export default function DashboardPage() {
                             <span>Start OA Round</span>
                             <ArrowRight className="h-4 w-4" />
                           </a>
+                        </div>
+                      )}
+                      {app.status === "oa" && app.assessmentId && app.hasCompletedOA && (
+                        <div className="mt-2 px-1">
+                          <div className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13.5px] font-semibold bg-purple-50 text-purple-700">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>OA Submitted - Under Review</span>
+                          </div>
                         </div>
                       )}
                     </motion.div>
@@ -591,8 +603,8 @@ export default function DashboardPage() {
                           <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-mute)" }} />
                         </div>
                       </div>
-                      {/* OA Round Button */}
-                      {app.status === "oa" && app.assessmentId && (
+                      {/* OA Round Button / Status */}
+                      {app.status === "oa" && app.assessmentId && !app.hasCompletedOA && (
                         <div className="mt-2 px-1">
                           <a
                             href={`/assessment/${app.assessmentId}`}
@@ -605,6 +617,14 @@ export default function DashboardPage() {
                             <span>Start OA Round</span>
                             <ArrowRight className="h-4 w-4" />
                           </a>
+                        </div>
+                      )}
+                      {app.status === "oa" && app.assessmentId && app.hasCompletedOA && (
+                        <div className="mt-2 px-1">
+                          <div className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13.5px] font-semibold bg-purple-50 text-purple-700">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>OA Submitted - Under Review</span>
+                          </div>
                         </div>
                       )}
                     </motion.div>

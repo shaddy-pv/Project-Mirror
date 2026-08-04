@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase, Plus, Trash2, Pencil, Check, X, Users, Award, FileText,
   Shield, User, Mail, Phone, MapPin, GraduationCap, BookOpen, Calendar,
-  Star, ExternalLink, ChevronRight, Loader2, Search,
+  Star, ExternalLink, ChevronRight, Loader2, Search, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -75,12 +75,14 @@ const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   pending:    { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   shortlisted:{ label: "Shortlisted",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
   oa:         { label: "OA Sent",      cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  "oa-cleared": { label: "OA Cleared",   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  "oa-failed":  { label: "OA Failed",    cls: "bg-red-50 text-red-700 border-red-200" },
   selected:   { label: "Selected",     cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  rejected:   { label: "Not Selected", cls: "bg-red-50 text-red-600 border-red-200" },
+  rejected:   { label: "Not Selected", cls: "bg-red-50 text-red-700 border-red-200" },
 };
 
 function AppStatusBadge({ status }: { status: string }) {
-  const cfg = APP_STATUS_CFG[status] ?? APP_STATUS_CFG.pending;
+  const cfg = APP_STATUS_CFG[status] ?? APP_STATUS_CFG['pending']!;
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${cfg.cls}`}>
       {cfg.label}
@@ -234,7 +236,7 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
             </div>
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">Update to</p>
             <div className="flex flex-wrap gap-2">
-              {(["pending", "shortlisted", "oa", "selected", "rejected"] as const).map(s => (
+              {(["pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "selected", "rejected"] as const).map(s => (
                 s === "oa" ? (
                   <button key={s}
                     onClick={() => { setPendingOA(true); setSelectedAssessmentId(""); }}
@@ -280,6 +282,21 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
               </div>
             )}
           </div>
+
+          {/* Verification Actions */}
+          {app.status === "oa" && app.assessmentId && app.hasCompletedOA && (
+            <div className="rounded-xl border bg-purple-50/50 p-4 space-y-3">
+              <h4 className="text-sm font-semibold text-purple-900">Assessment Submitted</h4>
+              <p className="text-xs text-purple-700/80">The applicant has completed their online assessment. Review the detailed analysis before updating their status.</p>
+              <Button 
+                onClick={() => window.open(`/oa-result/${app.assessmentId}/${app.userId ?? app.email}?appId=${app.id}&appType=internship`, '_blank')}
+                className="w-full gap-2"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Verify OA Result
+              </Button>
+            </div>
+          )}
 
           <hr />
 
@@ -395,8 +412,8 @@ function ApplicationsTab() {
             placeholder="Search name, email, college…"
             className="bg-transparent outline-none placeholder:text-muted-foreground flex-1 text-sm" />
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {["all", "pending", "shortlisted", "oa", "selected", "rejected"].map((s) => (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {(["all", "pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "selected", "rejected"] as const).map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
                 statusFilter === s ? "bg-foreground text-background border-foreground" : "hover:border-foreground/30"

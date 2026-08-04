@@ -19,6 +19,7 @@ import { Route as InternshipsRouteImport } from './routes/internships'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as OaResultAssessmentIdUserIdRouteImport } from './routes/oa-result.$assessmentId.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,12 @@ const UsersRoute = UsersRouteImport.update({
   path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OaResultAssessmentIdUserIdRoute =
+  OaResultAssessmentIdUserIdRouteImport.update({
+    id: '/oa-result/$assessmentId/$userId',
+    path: '/oa-result/$assessmentId/$userId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
+  '/oa-result/$assessmentId/$userId': typeof OaResultAssessmentIdUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
+  '/oa-result/$assessmentId/$userId': typeof OaResultAssessmentIdUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +116,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
+  '/oa-result/$assessmentId/$userId': typeof OaResultAssessmentIdUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shop'
     | '/users'
+    | '/oa-result/$assessmentId/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shop'
     | '/users'
+    | '/oa-result/$assessmentId/$userId'
   id:
     | '__root__'
     | '/'
@@ -145,6 +157,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shop'
     | '/users'
+    | '/oa-result/$assessmentId/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +171,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ShopRoute: typeof ShopRoute
   UsersRoute: typeof UsersRoute
+  OaResultAssessmentIdUserIdRoute: typeof OaResultAssessmentIdUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oa-result/$assessmentId/$userId': {
+      id: '/oa-result/$assessmentId/$userId'
+      path: '/oa-result/$assessmentId/$userId'
+      fullPath: '/oa-result/$assessmentId/$userId'
+      preLoaderRoute: typeof OaResultAssessmentIdUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +267,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ShopRoute: ShopRoute,
   UsersRoute: UsersRoute,
+  OaResultAssessmentIdUserIdRoute: OaResultAssessmentIdUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

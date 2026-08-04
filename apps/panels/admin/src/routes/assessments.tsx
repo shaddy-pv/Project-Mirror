@@ -327,55 +327,12 @@ function AssessmentBuilder({
   );
 }
 
-// ─── Results Viewer ───────────────────────────────────────────────────────────
-
-function ResultsPanel({ assessmentId, onClose }: { assessmentId: string; onClose: () => void }) {
-  const { data: results = [], isLoading } = useQuery({
-    queryKey: ["assessment-results", assessmentId],
-    queryFn: () => getAssessmentResults(assessmentId),
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Submissions</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      {isLoading ? (
-        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : (results as any[]).length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-8">No submissions yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {(results as any[]).map((r, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg border px-4 py-3">
-              <div>
-                <p className="text-[13px] font-medium">{r.userId}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {r.completedAt ? new Date(r.completedAt).toLocaleString("en-IN") : "In progress"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[18px] font-bold">{r.totalScore ?? "—"}<span className="text-sm font-normal text-muted-foreground">/25</span></p>
-                <p className="text-[11px] text-muted-foreground">{r.completedAt ? "Completed" : "Pending"}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function AssessmentsPage() {
   const qc = useQueryClient();
-  const [view, setView] = useState<"list" | "create" | "edit" | "results">("list");
+  const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [resultsId, setResultsId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Assessment | undefined>();
 
   const { data: assessments = [], isLoading } = useQuery({
@@ -442,12 +399,6 @@ function AssessmentsPage() {
         }
       />
 
-      {resultsId && (
-        <div className="rounded-xl border bg-card p-5">
-          <ResultsPanel assessmentId={resultsId} onClose={() => setResultsId(null)} />
-        </div>
-      )}
-
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /></div>
       ) : (assessments as Assessment[]).length === 0 ? (
@@ -484,9 +435,6 @@ function AssessmentsPage() {
                 <p className="text-[12.5px] text-muted-foreground line-clamp-2">{a.description}</p>
               )}
               <div className="mt-auto pt-2 flex items-center gap-2 border-t">
-                <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs h-8" onClick={() => setResultsId(a.id!)}>
-                  <Eye className="h-3.5 w-3.5" /> Results
-                </Button>
                 <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs h-8" onClick={() => startEdit(a.id!)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>

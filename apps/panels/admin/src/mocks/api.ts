@@ -429,7 +429,10 @@ export interface Application {
   careerId?: string;
   careerTitle?: string;
   careerDomain?: string;
-  status: "pending" | "shortlisted" | "oa" | "interview" | "selected" | "rejected";
+  status: "pending" | "shortlisted" | "oa" | "interview" | "selected" | "rejected" | "oa-cleared" | "oa-failed";
+  assessmentId?: string;
+  hasCompletedOA?: boolean;
+  userId?: string;
   appliedAt: string;
   fullName?: string;
   email?: string;
@@ -484,6 +487,10 @@ export async function updateCareerApplicationStatus(id: string, status: string, 
     method: "PATCH",
     body: JSON.stringify({ status, ...(assessmentId ? { assessmentId } : {}) }),
   });
+}
+
+export async function getOAResultAnalysis(assessmentId: string, userId: string) {
+  return fetchApi(`/admin/assessments/${assessmentId}/results/${userId}`);
 }
 
 // ─── Assessments ──────────────────────────────────────────────────────────────
