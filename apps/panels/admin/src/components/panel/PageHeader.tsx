@@ -10,8 +10,8 @@ export function PageHeader({
 }: {
   title: string;
   subtitle: string;
-  helpTitle: string;
-  helpLines: string[];
+  helpTitle?: string;
+  helpLines?: string[];
   actions?: ReactNode;
 }) {
   return (
@@ -21,7 +21,7 @@ export function PageHeader({
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
       </div>
       <div className="flex items-center gap-2">
-        <HelpDrawer title={helpTitle} lines={helpLines} />
+        {helpTitle && helpLines && <HelpDrawer title={helpTitle} lines={helpLines} />}
         {actions}
       </div>
     </div>

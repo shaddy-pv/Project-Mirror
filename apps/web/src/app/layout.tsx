@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { ReferralCapture } from "@/components/ReferralCapture";
+import { Suspense } from "react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,6 +36,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <QueryProvider>
           <AuthProvider>
+            <Suspense fallback={null}>
+              <ReferralCapture />
+            </Suspense>
             {children}
           </AuthProvider>
         </QueryProvider>

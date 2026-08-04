@@ -154,7 +154,7 @@ function CertificatePanel({ applicationId }: { applicationId: string }) {
                 </div>
               </div>
               {issued ? (
-                <a href={`/certificate/${cert.certificateId}`} target="_blank" rel="noopener noreferrer"
+                <a href={`http://localhost:3000/certificate/${cert.certificateId}`} target="_blank" rel="noopener noreferrer"
                   className="shrink-0 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50">
                   <ExternalLink className="h-3 w-3" /> View
                 </a>

@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Search, Calendar, MapPin, Briefcase, ChevronRight, X, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Search, Calendar, MapPin, Briefcase, ChevronRight, X, Loader2, CheckCircle2, Share2, Check, Gift } from "lucide-react";
 import { getInternships, applyForInternship, getMyInternshipApplications } from "@/lib/internships.functions";
-import { useState, useMemo } from "react";
+import { getMyProfile, validateReferralCode } from "@/lib/courses.functions";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useAuthContext } from "@/providers/auth-provider";
 
@@ -38,6 +40,8 @@ const TYPES = ["All", "Summer", "Monsoon", "Winter", "Spring"];
 export default function InternshipsPage() {
   const { isAuthenticated } = useAuthContext();
   const { data: internships } = useSuspenseQuery(internshipsQueryOptions);
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref");
   
   const { data: myApps = [] } = useQuery({
     queryKey: ["my-internship-applications"],
@@ -45,7 +49,41 @@ export default function InternshipsPage() {
     enabled: isAuthenticated
   });
 
+  const { data: myProfile } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: () => getMyProfile(),
+    enabled: isAuthenticated
+  });
+
   const appliedIds = useMemo(() => new Set((myApps as { internshipId: string }[]).map(a => a.internshipId)), [myApps]);
+
+  // Referral: store incoming ?ref= and validate it
+  const [appliedRef, setAppliedRef] = useState<string | null>(null);
+  const [refDiscount, setRefDiscount] = useState(0);
+  const [shareCopiedId, setShareCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (refCode) localStorage.setItem("enginow_ref", refCode);
+  }, [refCode]);
+
+  useEffect(() => {
+    const code = refCode ?? localStorage.getItem("enginow_ref");
+    if (!code) return;
+    validateReferralCode({ data: { code } })
+      .then((r) => { if (r.valid) { setAppliedRef(code); setRefDiscount(r.discountPercent ?? 15); } })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refCode]);
+
+  function handleShare(internshipId: string) {
+    const base = `${window.location.origin}/internship?highlight=${internshipId}`;
+    const canRefer = isAuthenticated && (myProfile as any)?.referralCode && !(myProfile as any)?.referralExpired;
+    const url = canRefer ? `${base}&ref=${(myProfile as any).referralCode}` : base;
+    navigator.clipboard.writeText(url).then(() => { 
+      setShareCopiedId(internshipId); 
+      setTimeout(() => setShareCopiedId(null), 2500); 
+    });
+  }
 
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("All");
@@ -69,6 +107,15 @@ export default function InternshipsPage() {
         background: "radial-gradient(ellipse 90% 100% at 50% 0%, rgba(255,232,184,0.42) 0%, rgba(255,248,234,0.14) 55%, transparent 80%)"
       }} />
       <div aria-hidden className="pointer-events-none absolute inset-0 grid-paper" style={{ opacity: 0.05 }} />
+
+      {/* Referral discount banner */}
+      {appliedRef && refDiscount > 0 && (
+        <div className="sticky top-0 z-50 flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-medium"
+          style={{ background: "linear-gradient(90deg,#92400e,#b45309)", color: "#fff" }}>
+          <Gift className="h-3.5 w-3.5 shrink-0" />
+          Referral applied — you get <strong>{refDiscount}% off</strong> on paid courses when you enrol!
+        </div>
+      )}
 
       <section className="relative px-6 pb-20 pt-24 md:px-10" style={{ borderBottom: "0.8px solid rgba(21,23,28,0.09)" }}>
         <div className="absolute left-6 top-6 md:left-10 md:top-10">
@@ -196,11 +243,11 @@ export default function InternshipsPage() {
                         <span className="font-medium" style={{ color: "var(--ink)" }}>Stipend</span>
                         <span style={{ color: "var(--ink-soft)" }}>{item.stipend || "Unpaid"}</span>
                       </div>
-                    <div className="mt-5 border-t border-[rgba(21,23,28,0.06)] pt-5">
+                    <div className="mt-5 border-t border-[rgba(21,23,28,0.06)] pt-5 flex gap-2">
                       <button
                         disabled={!item.isOpen || appliedIds.has(item.id)}
                         onClick={() => setSelectedInternship(item)}
-                        className={`flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[13.5px] font-medium transition-colors ${
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-[13.5px] font-medium transition-colors ${
                           appliedIds.has(item.id)
                             ? "cursor-default bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : item.isOpen
@@ -219,6 +266,14 @@ export default function InternshipsPage() {
                         ) : (
                           "Coming Soon"
                         )}
+                      </button>
+                      <button
+                        onClick={() => handleShare(item.id)}
+                        title="Copy referral link"
+                        className="inline-flex shrink-0 items-center justify-center rounded-full border px-3 py-2.5 transition-colors hover:bg-amber-50"
+                        style={{ borderColor: "rgba(21,23,28,0.12)", color: "var(--ink-soft)" }}
+                      >
+                        {shareCopiedId === item.id ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
                       </button>
                     </div>
                     </div>
