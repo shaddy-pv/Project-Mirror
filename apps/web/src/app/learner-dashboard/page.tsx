@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import {
   BookOpen, Layers, ArrowRight, Clock, ArrowLeft, Check, Share2, Trophy,
   TrendingUp, Star, Briefcase, MapPin, Calendar, Award, CheckCircle2, XCircle,
-  Clock3, ExternalLink, FileText, Shield, Lock, ChevronRight, ShoppingBag, Package
+  Clock3, ExternalLink, FileText, Shield, Lock, ChevronRight, ShoppingBag, Package, Loader2
 } from "lucide-react";
 import { getMyEnrollments, getMyProfile } from "@/lib/courses.functions";
 import { getMyInternshipApplications } from "@/lib/internships.functions";
