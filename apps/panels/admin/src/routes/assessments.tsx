@@ -214,7 +214,7 @@ function AssessmentBuilder({
     : (careers as any[]).map(c => ({ id: c.id, label: c.title }));
 
   const total = totalQuestions(modules);
-  const isValid = total === 25 && title.trim() && listingId;
+  const isValid = total <= 25 && total > 0 && title.trim() && listingId;
 
   const addModule = () => setModules(m => [...m, emptyModule()]);
   const removeModule = (i: number) => setModules(m => m.filter((_, idx) => idx !== i));
@@ -273,21 +273,27 @@ function AssessmentBuilder({
 
       {/* Question counter */}
       <div className={`flex items-center gap-3 rounded-xl border-2 px-5 py-3 ${
-        total === 25 ? "border-emerald-300 bg-emerald-50" :
-        total > 25 ? "border-red-300 bg-red-50" :
-        "border-amber-300 bg-amber-50"
+        total === 0
+          ? "border-muted bg-muted/30"
+          : total > 25
+            ? "border-red-300 bg-red-50"
+            : "border-emerald-300 bg-emerald-50"
       }`}>
-        {total === 25
-          ? <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          : <AlertCircle className="h-5 w-5 text-amber-600" />}
+        {total > 25
+          ? <AlertCircle className="h-5 w-5 text-red-600" />
+          : <CheckCircle2 className={`h-5 w-5 ${total > 0 ? "text-emerald-600" : "text-muted-foreground"}`} />}
         <div>
-          <p className={`text-sm font-semibold ${total === 25 ? "text-emerald-700" : total > 25 ? "text-red-700" : "text-amber-700"}`}>
-            {total} / 25 questions
+          <p className={`text-sm font-semibold ${
+            total > 25 ? "text-red-700" : total > 0 ? "text-emerald-700" : "text-muted-foreground"
+          }`}>
+            {total} / 25 max questions
           </p>
           <p className="text-[12px] text-muted-foreground">
-            {total < 25 ? `Add ${25 - total} more questions across your modules` :
-             total > 25 ? `Remove ${total - 25} questions — maximum is 25` :
-             "Perfect! Exactly 25 questions."}
+            {total > 25
+              ? `Remove ${total - 25} question${total - 25 > 1 ? "s" : ""} — maximum is 25`
+              : total === 0
+                ? "Add at least one question to continue"
+                : `${25 - total} more question${25 - total !== 1 ? "s" : ""} available`}
           </p>
         </div>
       </div>

@@ -18,7 +18,7 @@ function validateAssessment(body: any): string | null {
     const mod = body.modules[i];
     if (!mod.title?.trim()) return `Module ${i + 1} must have a title`;
     if (!mod.timeLimitSeconds || mod.timeLimitSeconds < 60) return `Module ${i + 1} timer must be at least 60 seconds`;
-    if (!Array.isArray(mod.questions) || mod.questions.length === 0) return `Module ${i + 1} must have questions`;
+    if (!Array.isArray(mod.questions) || mod.questions.length === 0) return `Module ${i + 1} must have at least 1 question`;
     for (let j = 0; j < mod.questions.length; j++) {
       const q = mod.questions[j];
       if (!q.text?.trim()) return `Question ${j + 1} in Module ${i + 1} must have text`;
@@ -29,7 +29,7 @@ function validateAssessment(body: any): string | null {
     }
     totalQ += mod.questions.length;
   }
-  if (totalQ !== 25) return `Total questions must be exactly 25 (currently ${totalQ})`;
+  if (totalQ > 25) return `Total questions must not exceed 25 (currently ${totalQ})`;
   return null;
 }
 
