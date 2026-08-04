@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, FileText, LayoutDashboard, Newspaper, Settings } from "lucide-react";
+import { BookOpen, FileText, LayoutDashboard, LogOut, Newspaper, Settings } from "lucide-react";
 
+import { useSession } from "@/lib/role";
 import { cn } from "@/lib/utils";
 import { HelpDrawer } from "./HelpDrawer";
-import { seedProfile } from "@/lib/mock/seed";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -28,6 +28,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { name, email, logout } = useSession();
 
   return (
     <div className="flex min-h-screen w-full bg-background font-sans">
@@ -56,9 +57,17 @@ export function AppShell({
             );
           })}
         </nav>
-        <div className="mt-4 rounded-md bg-sidebar-accent/50 px-3 py-3">
-          <p className="text-sm font-medium text-sidebar-accent-foreground">{seedProfile.name}</p>
-          <p className="truncate text-xs text-sidebar-foreground/60">{seedProfile.email}</p>
+        <div className="mt-4 rounded-md bg-sidebar-accent/50 px-3 py-3 flex items-center justify-between">
+          <div className="min-w-0 flex-1 mr-2">
+            <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{name}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">{email}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center gap-1 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded"
+          >
+            <LogOut className="size-3.5" />
+          </button>
         </div>
       </aside>
 
@@ -71,6 +80,13 @@ export function AppShell({
           <div className="flex shrink-0 items-center gap-2">
             {actions}
             <HelpDrawer title={help.title} lines={help.lines} />
+            <button
+              onClick={logout}
+              className="text-xs text-muted-foreground hover:text-destructive border border-border px-2.5 py-1.5 rounded flex items-center gap-1.5"
+            >
+              <LogOut className="size-3.5" />
+              Sign Out
+            </button>
           </div>
         </header>
         <main className="flex-1 px-6 py-6">{children}</main>

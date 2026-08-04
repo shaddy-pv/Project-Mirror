@@ -1,6 +1,6 @@
 # Enginow — Platform Monorepo
 
-A full-stack monorepo for the Enginow engineering education platform, covering the public website, REST API, and four internal staff dashboards.
+A full-stack monorepo for the Enginow engineering education platform, covering the public website, REST API, and internal staff portal.
 
 ---
 
@@ -12,10 +12,10 @@ enginow/
 │   ├── web/             Next.js 16 — public website (courses, blogs, careers, shop)
 │   ├── api/             Express.js — shared REST API for all apps
 │   └── panels/
-│       ├── admin/       TanStack Start — Admin internal dashboard
-│       ├── educator/    TanStack Start — Educator internal dashboard
-│       ├── hr/          TanStack Start — HR internal dashboard
-│       └── sales/       TanStack Start — Sales internal dashboard
+│       ├── admin/       TanStack Start — Unified Staff Portal (Admin, HR, Sales, Educator)
+│       ├── educator/    (Deprecated) Merged into admin
+│       ├── hr/          (Deprecated) Merged into admin
+│       └── sales/       (Deprecated) Merged into admin
 ├── docs/
 │   ├── architecture.md  System design & tech decisions
 │   ├── development.md   Local dev setup & commands
@@ -33,17 +33,15 @@ enginow/
 # Install all workspace dependencies
 npm install
 
-# Start API server (port 5000)
-npm run dev:api
+# Start everything at once (web, api, and staff portal)
+npm run dev
 
-# Start public website (port 3000)
-npm run dev:web
+# -- OR --
 
-# Start a specific panel
-npm run dev:admin     # port 3001
-npm run dev:educator  # port 3002
-npm run dev:hr        # port 3003
-npm run dev:sales     # port 3004
+# Start individually:
+npm run dev:api     # Start API server (port 5000)
+npm run dev:web     # Start public website (port 3000)
+npm run dev:admin   # Start Staff Portal (port 8080)
 ```
 
 > See **[docs/development.md](docs/development.md)** for environment variable setup and full onboarding guide.
@@ -56,22 +54,20 @@ npm run dev:sales     # port 3004
 |-----|-----------|------|
 | `apps/web/` | Next.js 16, React 19, Tailwind v4 | 3000 |
 | `apps/api/` | Express.js, TypeScript, MongoDB | 5000 |
-| `apps/panels/admin/` | TanStack Start, Radix UI, Tailwind | 3001 |
-| `apps/panels/educator/` | TanStack Start, Radix UI, Tailwind | 3002 |
-| `apps/panels/hr/` | TanStack Start, Radix UI, Tailwind | 3003 |
-| `apps/panels/sales/` | TanStack Start, Radix UI, Tailwind | 3004 |
+| `apps/panels/admin/` | TanStack Start, Radix UI, Tailwind | 8080 |
 
 ---
 
 ## Key Features
 
-- **Content Approval Workflow** — `draft → pending_approval → live` state machine for courses, trainings, blogs
-- **Role-Based Access Control** — Firebase Auth + MongoDB `user_roles` collection
-- **PDF Generation** — PDFKit-powered certificates, Letters of Recommendation, and offer letters
-- **Certificate Verification** — Public endpoint to verify issued credential IDs
-- **Referral System** — Unique referral codes, discount tracking, usage limits
-- **Shop** — Razorpay-integrated product catalogue and orders
-- **Internship Pipeline** — HR-managed stages (Applied → Shortlisted → OA → Selected)
+- **Unified Staff Portal** — Role-based access (Admin, HR, Sales, Educator) in a single panel.
+- **Content Approval Workflow** — `draft → pending_approval → live` state machine for courses, trainings, blogs.
+- **Role-Based Access Control** — Staff logins via JWT and database `user_roles` collection.
+- **PDF Generation** — PDFKit-powered certificates, Letters of Recommendation, and offer letters.
+- **Certificate Verification** — Public endpoint to verify issued credential IDs.
+- **Referral System** — Unique referral codes, discount tracking, usage limits.
+- **Shop** — Razorpay-integrated product catalogue and orders.
+- **Internship Pipeline** — HR-managed stages (Applied → Shortlisted → OA → Selected).
 
 ---
 

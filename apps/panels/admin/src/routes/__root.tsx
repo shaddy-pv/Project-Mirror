@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 
 import { AppShell } from "@/components/panel/AppShell";
+import { PanelLoginPage } from "@/components/panel/PanelLoginPage";
+import { useSession } from "@/lib/session";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -125,13 +127,17 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const isAuthenticated = useSession((s) => s.isAuthenticated);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </AppShell>
+      {isAuthenticated ? (
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      ) : (
+        <PanelLoginPage />
+      )}
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

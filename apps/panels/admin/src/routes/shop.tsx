@@ -138,8 +138,8 @@ function ShopPage() {
     {
       key: "stock",
       header: "Stock",
-      sortValue: (r) => r.stock,
-      cell: (r) => r.stock,
+      sortValue: (r) => r.stock ?? 0,
+      cell: (r) => r.stock ?? 0,
     },
     {
       key: "status",

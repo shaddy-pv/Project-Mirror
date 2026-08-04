@@ -8,19 +8,13 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  LogOut,
   Menu,
   Settings,
   ShoppingBag,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { canAccess, useSession, type ModuleKey } from "@/lib/session";
 import { ROLE_LABELS, type Role } from "@/lib/types";
 import { listApprovals } from "@/mocks/api";
@@ -52,7 +46,7 @@ const TITLES: Record<string, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { role, name, setRole } = useSession();
+  const { role, name, email, logout } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: approvals } = useQuery({ queryKey: ["approvals"], queryFn: listApprovals });
   const pending = approvals?.length ?? 0;
@@ -104,8 +98,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-sidebar-border px-5 py-4 text-xs text-sidebar-foreground/60">
-          Signed in as {name} · {ROLE_LABELS[role]}
+        <div className="border-t border-sidebar-border px-5 py-4 text-xs text-sidebar-foreground/60 flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sidebar-foreground">{name}</p>
+            <p className="text-[11px] text-muted-foreground">{email}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={logout}
+            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-3.5 w-3.5 mr-1" />
+            Sign Out
+          </Button>
         </div>
       </aside>
 
@@ -123,10 +129,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h2 className="flex-1 truncate text-sm font-medium text-muted-foreground">
             {TITLES[pathname] ?? "Enginow Panel"}
           </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded font-semibold uppercase">
-              Admin Workspace
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded font-semibold uppercase">
+              {ROLE_LABELS[role]} Portal
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              className="text-xs h-8 gap-1.5 border-border hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </Button>
           </div>
         </header>
 

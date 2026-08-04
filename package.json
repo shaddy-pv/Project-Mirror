@@ -10,18 +10,22 @@
     "apps/panels/sales"
   ],
   "scripts": {
+    "dev": "concurrently --names \"web,api,panel\" --prefix-colors \"cyan,green,yellow\" \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/panels/admin\"",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:admin": "npm run dev --workspace=apps/panels/admin",
     "dev:educator": "npm run dev --workspace=apps/panels/educator",
     "dev:hr": "npm run dev --workspace=apps/panels/hr",
     "dev:sales": "npm run dev --workspace=apps/panels/sales",
-    "dev:panels": "npm run dev --workspace=apps/panels/admin & npm run dev --workspace=apps/panels/educator & npm run dev --workspace=apps/panels/hr & npm run dev --workspace=apps/panels/sales",
+    "dev:panels": "npm run dev --workspace=apps/panels/admin",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
     "lint": "npm run lint --workspaces --if-present"
   },
   "dependencies": {
     "soft-hues-workshop-main": "file:../soft-hues-workshop-main"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
   }
 }

@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 
 import { RoleGuard } from "@/components/hr/RoleGuard";
 import { HrSidebar, MobileNav } from "@/components/hr/HrSidebar";
+import { HrLoginPage } from "@/components/hr/HrLoginPage";
+import { useSession } from "@/lib/store";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -132,10 +134,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const isAuthenticated = useSession((s) => s.isAuthenticated);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RoleGuard allow="hr">
+      {isAuthenticated ? (
         <div className="min-h-screen bg-background">
           <HrSidebar />
           <div className="lg:pl-60">
@@ -144,7 +147,9 @@ function RootComponent() {
             <Outlet />
           </div>
         </div>
-      </RoleGuard>
+      ) : (
+        <HrLoginPage />
+      )}
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

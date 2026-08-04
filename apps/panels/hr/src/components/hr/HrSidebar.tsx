@@ -4,11 +4,13 @@ import {
   CalendarRange,
   ClipboardList,
   LayoutDashboard,
+  LogOut,
   Mail,
   Newspaper,
   Settings,
 } from "lucide-react";
 
+import { useSession } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -23,6 +25,7 @@ const NAV = [
 
 export function HrSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { name, email, logout } = useSession();
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
@@ -65,8 +68,18 @@ export function HrSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-ink-hover px-5 py-4 text-xs text-ink-muted">
-        Signed in as HR
+      <div className="border-t border-ink-hover px-5 py-4 text-xs text-ink-muted flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-ink-foreground">{name}</p>
+          <p className="text-[11px] text-ink-muted">{email}</p>
+        </div>
+        <button
+          onClick={logout}
+          className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center gap-1 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded"
+        >
+          <LogOut className="size-3.5" />
+          Sign Out
+        </button>
       </div>
     </aside>
   );

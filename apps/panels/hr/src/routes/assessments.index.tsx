@@ -34,7 +34,7 @@ function AssessmentsPage() {
   const navigate = useNavigate();
   const { data: assessments = [], isLoading } = useQuery({
     queryKey: qk.assessments,
-    queryFn: api.assessments,
+    queryFn: () => api.assessments(),
   });
   const { data: listings = [] } = useQuery({ queryKey: qk.listings, queryFn: api.listings });
 

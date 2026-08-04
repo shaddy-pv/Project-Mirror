@@ -1,12 +1,15 @@
 import type { Blog, Course, PanelUser, Internship, Career, Product, Order } from "@/lib/types";
+import { getAuthToken } from "@/lib/session";
 
 const API_URL = "http://localhost:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-mock-role", "admin");
-  headers.set("Authorization", "Bearer mock-token");
+  const token = getAuthToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
   
   const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
   if (!res.ok) {

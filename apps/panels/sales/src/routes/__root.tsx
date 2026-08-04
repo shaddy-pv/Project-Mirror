@@ -10,6 +10,8 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
+import { SalesLoginPage } from "@/components/sales/SalesLoginPage";
+import { useSalesAuth } from "@/store/useSalesAuth";
 
 import appCss from "../styles.css?url";
 
@@ -118,11 +120,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const isAuthenticated = useSalesAuth((s) => s.isAuthenticated);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {isAuthenticated ? <Outlet /> : <SalesLoginPage />}
       <Toaster />
     </QueryClientProvider>
   );

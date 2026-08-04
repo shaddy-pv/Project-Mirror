@@ -1,10 +1,8 @@
 import { create } from "zustand";
-import type { ReactNode } from "react";
-import { ShieldAlert } from "lucide-react";
 
 export type Role = "admin" | "educator" | "hr" | "sales";
 
-const STORAGE_KEY = "enginow_educator_auth";
+const STORAGE_KEY = "enginow_sales_auth";
 
 interface StoredAuth {
   token: string;
@@ -38,18 +36,18 @@ interface SessionState {
 
 const initialAuth = getStoredAuth();
 
-export const useSession = create<SessionState>((set) => ({
-  isAuthenticated: Boolean(initialAuth && initialAuth.user.role === "educator"),
-  role: initialAuth?.user?.role || "educator",
-  name: initialAuth?.user?.name || "Dr. Aris Thorne",
-  email: initialAuth?.user?.email || "educator@enginow.in",
+export const useSalesAuth = create<SessionState>((set) => ({
+  isAuthenticated: Boolean(initialAuth && initialAuth.user.role === "sales"),
+  role: initialAuth?.user?.role || "sales",
+  name: initialAuth?.user?.name || "Riya Malhotra",
+  email: initialAuth?.user?.email || "sales@enginow.in",
 
   login: async (identifier, password) => {
     try {
       const res = await fetch("http://localhost:5000/api/staff/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password, portal: "educator" }),
+        body: JSON.stringify({ identifier, password, portal: "sales" }),
       });
 
       const data = await res.json();
@@ -58,8 +56,8 @@ export const useSession = create<SessionState>((set) => ({
       }
 
       const user = data.staff || data.user;
-      if (!user || user.role !== "educator") {
-        return { success: false, error: "Access denied: This account is not authorized for the Educator panel." };
+      if (!user || user.role !== "sales") {
+        return { success: false, error: "Access denied: This account is not authorized for the Sales panel." };
       }
 
       const authData: StoredAuth = {
@@ -75,33 +73,33 @@ export const useSession = create<SessionState>((set) => ({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
       set({
         isAuthenticated: true,
-        role: "educator",
-        name: user.name || "Dr. Aris Thorne",
+        role: "sales",
+        name: user.name || "Riya Malhotra",
         email: user.email || identifier,
       });
 
       return { success: true };
     } catch {
       const id = identifier.toLowerCase().trim();
-      if (id === "educator@enginow.in" || id === "educator") {
+      if (id === "sales@enginow.in" || id === "sales") {
         if (password === "password@123") {
           const authData: StoredAuth = {
-            token: "mock-educator-token-" + Date.now(),
-            user: { id: "educator-1", name: "Dr. Aris Thorne", email: "educator@enginow.in", role: "educator" },
+            token: "mock-sales-token-" + Date.now(),
+            user: { id: "sales-1", name: "Riya Malhotra", email: "sales@enginow.in", role: "sales" },
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
           set({
             isAuthenticated: true,
-            role: "educator",
-            name: "Dr. Aris Thorne",
-            email: "educator@enginow.in",
+            role: "sales",
+            name: "Riya Malhotra",
+            email: "sales@enginow.in",
           });
           return { success: true };
         } else {
           return { success: false, error: "Incorrect password." };
         }
-      } else if (["admin@enginow.in", "hr@enginow.in", "sales@enginow.in", "admin", "hr", "sales"].includes(id)) {
-        return { success: false, error: `Access denied: ${id} is not an Educator account and cannot access the Educator panel.` };
+      } else if (["admin@enginow.in", "hr@enginow.in", "educator@enginow.in", "admin", "hr", "educator"].includes(id)) {
+        return { success: false, error: `Access denied: ${id} is not a Sales account and cannot access the Sales panel.` };
       } else {
         return { success: false, error: "Invalid staff identifier or password." };
       }
@@ -112,29 +110,9 @@ export const useSession = create<SessionState>((set) => ({
     localStorage.removeItem(STORAGE_KEY);
     set({
       isAuthenticated: false,
-      role: "educator",
-      name: "Dr. Aris Thorne",
-      email: "educator@enginow.in",
+      role: "sales",
+      name: "Riya Malhotra",
+      email: "sales@enginow.in",
     });
   },
 }));
-
-export const session = { role: "educator" as Role };
-
-export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactNode }) {
-  const role = useSession((s) => s.role);
-  if (!allow.includes(role)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="max-w-sm text-center">
-          <ShieldAlert className="mx-auto size-8 text-muted-foreground" />
-          <h1 className="mt-3 text-lg font-semibold">This area isn't part of your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Educator accounts can only open their own courses, blogs and resources.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return <>{children}</>;
-}
