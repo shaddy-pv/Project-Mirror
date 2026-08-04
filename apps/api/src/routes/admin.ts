@@ -620,8 +620,8 @@ router.patch("/internship-applications/:id/status", requireStaffAuth, async (req
     const id = String(req.params.id);
     const { status, assessmentId } = req.body;
 
-    if (!["pending", "shortlisted", "oa", "selected", "rejected"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status. Must be pending, shortlisted, oa, selected, or rejected." });
+    if (!["pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "selected", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Must be pending, shortlisted, oa, oa-cleared, oa-failed, selected, or rejected." });
     }
     if (status === "oa" && !assessmentId) {
       return res.status(400).json({ error: "assessmentId is required when setting status to OA" });
@@ -1114,7 +1114,7 @@ router.put("/career-applications/:id/status", requireStaffAuth, async (req: Auth
   try {
     checkRoles(req, ["hr"]);
     const { status } = req.body;
-    if (!["pending", "reviewing", "shortlisted", "oa", "selected", "rejected"].includes(status)) {
+    if (!["pending", "reviewing", "shortlisted", "oa", "oa-cleared", "oa-failed", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
     
@@ -1317,7 +1317,7 @@ router.patch("/career-applications/:id/status", requireStaffAuth, async (req: Au
     const id = String(req.params.id);
     const { status, assessmentId } = req.body;
 
-    if (!["pending", "shortlisted", "oa", "interview", "selected", "rejected"].includes(status)) {
+    if (!["pending", "shortlisted", "oa", "oa-cleared", "oa-failed", "interview", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status." });
     }
     if (status === "oa" && !assessmentId) {
