@@ -454,10 +454,10 @@ export async function listInternshipApplications(internshipId?: string): Promise
   return fetchApi(`/admin/internship-applications${qs}`);
 }
 
-export async function updateInternshipApplicationStatus(id: string, status: string) {
+export async function updateInternshipApplicationStatus(id: string, status: string, assessmentId?: string) {
   return fetchApi(`/admin/internship-applications/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, ...(assessmentId ? { assessmentId } : {}) }),
   });
 }
 
@@ -479,9 +479,58 @@ export async function listCareerApplications(careerId?: string): Promise<Applica
   return fetchApi(`/admin/career-applications${qs}`);
 }
 
-export async function updateCareerApplicationStatus(id: string, status: string) {
+export async function updateCareerApplicationStatus(id: string, status: string, assessmentId?: string) {
   return fetchApi(`/admin/career-applications/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, ...(assessmentId ? { assessmentId } : {}) }),
   });
+}
+
+// ─── Assessments ──────────────────────────────────────────────────────────────
+
+export interface AssessmentQuestion {
+  id?: string;
+  text: string;
+  options: [string, string, string, string];
+  correctAnswer: number; // 0–3
+}
+
+export interface AssessmentModule {
+  id?: string;
+  title: string;
+  timeLimitSeconds: number;
+  questions: AssessmentQuestion[];
+}
+
+export interface Assessment {
+  id?: string;
+  title: string;
+  description?: string;
+  listingId: string;
+  listingType: "internship" | "career";
+  modules: AssessmentModule[];
+  createdAt?: string;
+}
+
+export async function listAssessments(): Promise<Assessment[]> {
+  return fetchApi("/assessments").catch(() => []);
+}
+
+export async function getAssessmentForEdit(id: string): Promise<Assessment> {
+  return fetchApi(`/assessments/${id}/edit`);
+}
+
+export async function saveAssessment(data: Assessment): Promise<{ id: string }> {
+  if (data.id) {
+    return fetchApi(`/assessments/${data.id}`, { method: "PUT", body: JSON.stringify(data) });
+  }
+  return fetchApi("/assessments", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function deleteAssessment(id: string) {
+  return fetchApi(`/assessments/${id}`, { method: "DELETE" });
+}
+
+export async function getAssessmentResults(id: string) {
+  return fetchApi(`/assessments/${id}/results`).catch(() => []);
 }

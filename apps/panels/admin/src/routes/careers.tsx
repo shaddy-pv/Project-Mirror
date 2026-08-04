@@ -33,7 +33,7 @@ import { ConfirmDialog } from "@/components/panel/ConfirmDialog";
 import type { Career } from "@/lib/types";
 import {
   listCareers, saveCareer, deleteCareer,
-  listCareerApplications, updateCareerApplicationStatus,
+  listCareerApplications, updateCareerApplicationStatus, listAssessments,
   type Application,
 } from "@/mocks/api";
 
@@ -92,7 +92,8 @@ const EMPTY_FORM: Partial<Career> = {
 const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   pending:    { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   shortlisted:{ label: "Shortlisted",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  interview:  { label: "Interview",    cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  oa:         { label: "OA Sent",      cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  interview:  { label: "Interview",    cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
   selected:   { label: "Selected",     cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   rejected:   { label: "Not Selected", cls: "bg-red-50 text-red-600 border-red-200" },
 };
@@ -110,14 +111,25 @@ function AppStatusBadge({ status }: { status: string }) {
 
 function ApplicantSheet({ app, onClose, onStatusChange }: {
   app: Application; onClose: () => void;
-  onStatusChange: (id: string, status: string) => Promise<void>;
+  onStatusChange: (id: string, status: string, assessmentId?: string) => Promise<void>;
 }) {
   const [updating, setUpdating] = useState(false);
+  const [pendingOA, setPendingOA] = useState(false);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
 
-  const handle = async (status: string) => {
+  const { data: allAssessments = [] } = useQuery({
+    queryKey: ["assessments"],
+    queryFn: listAssessments,
+    enabled: pendingOA,
+  });
+  const oaAssessments = (allAssessments as any[]).filter(
+    a => a.listingType === "career" && a.listingId === app.careerId
+  );
+
+  const handle = async (status: string, assessmentId?: string) => {
     setUpdating(true);
-    try { await onStatusChange(app.id, status); }
-    finally { setUpdating(false); }
+    try { await onStatusChange(app.id, status, assessmentId); }
+    finally { setUpdating(false); setPendingOA(false); setSelectedAssessmentId(""); }
   };
 
   return (
@@ -140,13 +152,48 @@ function ApplicantSheet({ app, onClose, onStatusChange }: {
             </div>
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">Update to</p>
             <div className="flex flex-wrap gap-2">
-              {(["pending", "shortlisted", "interview", "selected", "rejected"] as const).map(s => (
-                <button key={s} onClick={() => handle(s)} disabled={updating || app.status === s}
-                  className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ${APP_STATUS_CFG[s]?.cls}`}>
-                  {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : APP_STATUS_CFG[s]?.label}
-                </button>
+              {(["pending", "shortlisted", "oa", "interview", "selected", "rejected"] as const).map(s => (
+                s === "oa" ? (
+                  <button key={s}
+                    onClick={() => { setPendingOA(true); setSelectedAssessmentId(""); }}
+                    disabled={updating || app.status === s}
+                    className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ${APP_STATUS_CFG[s]?.cls}`}>
+                    {APP_STATUS_CFG[s]?.label}
+                  </button>
+                ) : (
+                  <button key={s} onClick={() => handle(s)} disabled={updating || app.status === s}
+                    className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ${APP_STATUS_CFG[s]?.cls}`}>
+                    {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : APP_STATUS_CFG[s]?.label}
+                  </button>
+                )
               ))}
             </div>
+            {pendingOA && (
+              <div className="mt-3 rounded-xl border border-purple-200 bg-purple-50 p-4 space-y-3">
+                <p className="text-[12px] font-semibold text-purple-800">Select an assessment to send with OA</p>
+                {oaAssessments.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No assessments linked to this career. <a href="/assessments" className="text-primary underline">Create one first.</a></p>
+                ) : (
+                  <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Pick assessment…" /></SelectTrigger>
+                    <SelectContent>
+                      {oaAssessments.map((a: any) => (
+                        <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={!selectedAssessmentId || updating}
+                    onClick={() => handle("oa", selectedAssessmentId)}
+                    className="gap-1.5 flex-1 text-xs bg-purple-700 hover:bg-purple-800">
+                    {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Confirm & Send OA
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setPendingOA(false)} className="text-xs">Cancel</Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <hr />
@@ -237,8 +284,8 @@ function ApplicationsTab() {
     return matchStatus && matchSearch;
   });
 
-  const handleStatusChange = async (id: string, status: string) => {
-    await updateCareerApplicationStatus(id, status);
+  const handleStatusChange = async (id: string, status: string, assessmentId?: string) => {
+    await updateCareerApplicationStatus(id, status, assessmentId);
     qc.invalidateQueries({ queryKey: ["career-applications"] });
     if (selectedApp?.id === id) setSelectedApp((p) => p ? { ...p, status: status as any } : null);
     toast.success("Status updated");

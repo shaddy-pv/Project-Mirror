@@ -618,16 +618,43 @@ router.patch("/internship-applications/:id/status", requireStaffAuth, async (req
   try {
     checkRoles(req, ["hr"]);
     const id = String(req.params.id);
-    const { status } = req.body;
+    const { status, assessmentId } = req.body;
 
     if (!["pending", "shortlisted", "oa", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status. Must be pending, shortlisted, oa, selected, or rejected." });
     }
+    if (status === "oa" && !assessmentId) {
+      return res.status(400).json({ error: "assessmentId is required when setting status to OA" });
+    }
 
-    await getDb().collection("internship_applications").updateOne(
+    const updateDoc: any = { status, updatedAt: new Date() };
+    if (status === "oa" && assessmentId) updateDoc.assessmentId = assessmentId;
+
+    const app = await getDb().collection("internship_applications").findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: { status, updatedAt: new Date() } }
+      { $set: updateDoc },
+      { returnDocument: "after" }
     );
+
+    // Best-effort email notification for OA
+    if (status === "oa" && app && app.email) {
+      const assessment = assessmentId
+        ? await getDb().collection("assessments").findOne({ _id: new ObjectId(assessmentId) })
+        : null;
+      const internship = app.internshipId
+        ? await getDb().collection("internships").findOne({ _id: app.internshipId })
+        : null;
+      getDb().collection("notifications").insertOne({
+        _id: new ObjectId(),
+        userId: app.userId,
+        type: "oa_ready",
+        title: "Your OA Round is Ready!",
+        message: `Your Online Assessment for "${internship?.title || "the internship"}" is now available. Click Start OA Round in your dashboard.`,
+        assessmentId,
+        read: false,
+        createdAt: new Date(),
+      }).catch(() => {});
+    }
 
     res.json({ success: true });
   } catch (error: any) {
@@ -1288,16 +1315,39 @@ router.patch("/career-applications/:id/status", requireStaffAuth, async (req: Au
   try {
     checkRoles(req, ["hr"]);
     const id = String(req.params.id);
-    const { status } = req.body;
+    const { status, assessmentId } = req.body;
 
-    if (!["pending", "shortlisted", "interview", "selected", "rejected"].includes(status)) {
+    if (!["pending", "shortlisted", "oa", "interview", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status." });
     }
+    if (status === "oa" && !assessmentId) {
+      return res.status(400).json({ error: "assessmentId is required when setting status to OA" });
+    }
 
-    await getDb().collection("career_applications").updateOne(
+    const updateDoc: any = { status, updatedAt: new Date() };
+    if (status === "oa" && assessmentId) updateDoc.assessmentId = assessmentId;
+
+    const app = await getDb().collection("career_applications").findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: { status, updatedAt: new Date() } }
+      { $set: updateDoc },
+      { returnDocument: "after" }
     );
+
+    if (status === "oa" && app && app.userId) {
+      const career = app.careerId
+        ? await getDb().collection("careers").findOne({ _id: app.careerId })
+        : null;
+      getDb().collection("notifications").insertOne({
+        _id: new ObjectId(),
+        userId: app.userId,
+        type: "oa_ready",
+        title: "Your OA Round is Ready!",
+        message: `Your Online Assessment for "${career?.title || "the role"}" is now available. Click Start OA Round in your dashboard.`,
+        assessmentId,
+        read: false,
+        createdAt: new Date(),
+      }).catch(() => {});
+    }
 
     res.json({ success: true });
   } catch (error: any) {

@@ -38,7 +38,8 @@ interface ApplicationItem {
   id: string;
   internshipId?: string;
   careerId?: string;
-  status: "pending" | "accepted" | "rejected";
+  status: "pending" | "accepted" | "rejected" | "shortlisted" | "oa" | "selected";
+  assessmentId?: string;
   appliedAt: string;
   fullName?: string;
   email?: string;
@@ -81,10 +82,13 @@ const enrollmentsQueryOptions = queryOptions({
   queryFn: () => getMyEnrollments()
 });
 
-const STATUS_CONFIG = {
-  pending:  { label: "Under Review", color: "bg-amber-50 text-amber-700",    dot: "bg-amber-400",    icon: Clock3 },
-  accepted: { label: "Accepted",     color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500",  icon: CheckCircle2 },
-  rejected: { label: "Not Selected", color: "bg-red-50 text-red-600",        dot: "bg-red-400",      icon: XCircle },
+const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string; icon: any }> = {
+  pending:     { label: "Under Review", color: "bg-amber-50 text-amber-700",    dot: "bg-amber-400",    icon: Clock3 },
+  accepted:    { label: "Accepted",     color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500",  icon: CheckCircle2 },
+  selected:    { label: "Selected",     color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500",  icon: CheckCircle2 },
+  shortlisted: { label: "Shortlisted",  color: "bg-blue-50 text-blue-700",      dot: "bg-blue-400",     icon: Star },
+  oa:          { label: "OA Pending",   color: "bg-purple-50 text-purple-700",   dot: "bg-purple-500",   icon: Clock3 },
+  rejected:    { label: "Not Selected", color: "bg-red-50 text-red-600",        dot: "bg-red-400",      icon: XCircle },
 };
 
 const CERT_TYPE_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
@@ -455,18 +459,20 @@ export default function DashboardPage() {
                   const cfg = STATUS_CONFIG[app.status] ?? STATUS_CONFIG.pending;
                   const hasCerts = (app.certificates ?? []).length > 0;
                   return (
-                    <motion.button
+                    <motion.div
                       key={app.id}
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.24, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                      onClick={() => setSelectedApp(app)}
-                      className="w-full text-left"
                     >
-                      <div className="flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all hover:shadow-sm hover:-translate-y-0.5" style={{ background: "#fff", borderColor: "rgba(21,23,28,0.10)" }}>
+                      <div
+                        onClick={() => setSelectedApp(app)}
+                        className="flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all hover:shadow-sm hover:-translate-y-0.5 cursor-pointer"
+                        style={{ background: "#fff", borderColor: app.status === "oa" ? "rgba(147,51,234,0.25)" : "rgba(21,23,28,0.10)" }}
+                      >
                         {/* Icon */}
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: app.status === "accepted" ? "rgba(16,185,129,0.10)" : "var(--amber-soft)" }}>
-                          <Briefcase className="h-4.5 w-4.5" style={{ color: app.status === "accepted" ? "#059669" : "var(--ink-mute)" }} />
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: app.status === "accepted" || app.status === "selected" ? "rgba(16,185,129,0.10)" : app.status === "oa" ? "rgba(147,51,234,0.10)" : "var(--amber-soft)" }}>
+                          <Briefcase className="h-4.5 w-4.5" style={{ color: app.status === "accepted" || app.status === "selected" ? "#059669" : app.status === "oa" ? "#7c3aed" : "var(--ink-mute)" }} />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -501,7 +507,21 @@ export default function DashboardPage() {
                           <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-mute)" }} />
                         </div>
                       </div>
-                    </motion.button>
+                      {/* OA Round Button */}
+                      {app.status === "oa" && app.assessmentId && (
+                        <div className="mt-2 px-1">
+                          <a
+                            href={`/assessment/${app.assessmentId}`}
+                            onClick={e => e.stopPropagation()}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13.5px] font-semibold transition-all"
+                            style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }}
+                          >
+                            <span>Start OA Round</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </a>
+                        </div>
+                      )}
+                    </motion.div>
                   );
                 })}
               </div>
