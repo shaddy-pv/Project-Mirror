@@ -52,7 +52,7 @@ export interface CourseDoc {
   isComingSoon: boolean;
   roadmap: CourseModule[];
   createdBy?: string;
-  status: "draft" | "pending_approval" | "live" | "archived";
+  status: "draft" | "pending_approval" | "live" | "archived" | "published" | "active";
   rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -73,7 +73,7 @@ export interface TrainingDoc {
   discountedPrice: number;
   bannerUrl?: string;
   createdBy?: string;
-  status: "draft" | "pending_approval" | "live" | "archived";
+  status: "draft" | "pending_approval" | "live" | "archived" | "published" | "active";
   rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;

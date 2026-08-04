@@ -79,12 +79,87 @@ router.get("/is-admin", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await requireAdmin(req.user!.userId);
-    const profileDocs = await profiles().find({}).sort({ createdAt: -1 }).toArray();
-    const roleDocs = await userRoles().find({}).toArray();
-    res.json(profileDocs.map((p) => ({
-      ...p,
-      roles: roleDocs.filter((r) => r.userId === p._id).map((r) => r.role),
-    })));
+    const [
+      profileDocs,
+      roleDocs,
+      allCourseEnrollments,
+      allCourses,
+      allTrainings,
+      allInternshipApps,
+      allInternships,
+      allCareerApps,
+      allCareers,
+      allCerts,
+      allReferrals,
+      allOrders,
+      allProducts,
+    ] = await Promise.all([
+      profiles().find({}).sort({ createdAt: -1 }).toArray(),
+      userRoles().find({}).toArray(),
+      getDb().collection("course_enrollments").find({}).toArray(),
+      courses().find({}).toArray(),
+      trainings().find({}).toArray(),
+      getDb().collection("internship_applications").find({}).toArray(),
+      getDb().collection("internships").find({}).toArray(),
+      getDb().collection("career_applications").find({}).toArray(),
+      getDb().collection("careers").find({}).toArray(),
+      getDb().collection("certificates").find({}).toArray(),
+      getDb().collection("referrals").find({}).toArray(),
+      orders().find({}).toArray(),
+      products().find({}).toArray(),
+    ]);
+
+    const courseMap = new Map(allCourses.map(c => [c._id.toString(), c.title]));
+    const trainingMap = new Map(allTrainings.map(t => [t._id.toString(), t.title]));
+    const internshipMap = new Map(allInternships.map(i => [i._id.toString(), i.title]));
+    const careerMap = new Map(allCareers.map(c => [c._id.toString(), c.title]));
+    const productMap = new Map(allProducts.map(p => [p._id.toString(), p.name]));
+    const profileMap = new Map(profileDocs.map(p => [p._id, p.fullName || "User"]));
+
+    const enrichedUsers = profileDocs.map((p) => {
+      const userCourseEnrolls = allCourseEnrollments.filter(e => e.userId === p._id);
+      const userInternshipApps = allInternshipApps.filter(a => a.userId === p._id);
+      const userCareerApps = allCareerApps.filter(a => a.userId === p._id);
+      const userCerts = allCerts.filter(c => c.userId === p._id);
+      const userReferrals = allReferrals.filter(r => r.referrerId === p._id);
+      const userOrders = allOrders.filter(o => o.userId === p._id);
+
+      const userCourses = userCourseEnrolls.map(e => {
+        const title = courseMap.get(e.courseId?.toString()) || trainingMap.get(e.trainingId?.toString()) || "Course";
+        return `${title} (${e.progress ?? 0}% complete)`;
+      });
+
+      const userApplications = [
+        ...userInternshipApps.map(a => `${internshipMap.get(a.internshipId?.toString()) || "Internship"} (Internship - ${a.status || "pending"})`),
+        ...userCareerApps.map(a => `${careerMap.get(a.careerId?.toString()) || "Career"} (Job - ${a.status || "pending"})`),
+      ];
+
+      const userCertificates = userCerts.map(c => `${c.certificateId} - ${c.internshipTitle || "Certificate"} (${c.type?.toUpperCase()})`);
+
+      const referralActivity = userReferrals.map(r => ({
+        joinedName: profileMap.get(r.referredUserId) || "User",
+        sharedOn: r.usedAt ? new Date(r.usedAt).toISOString().split("T")[0] : "Recent",
+        joinedOn: r.usedAt ? new Date(r.usedAt).toISOString().split("T")[0] : "Recent",
+        resource: r.resourceType ? `${r.resourceType}: ${productMap.get(r.resourceId) || courseMap.get(r.resourceId) || r.resourceId}` : "Sign up",
+      }));
+
+      const ordersSummary = userOrders.map(o => {
+        const prod = productMap.get(o.productId ? o.productId.toString() : "") || "Product";
+        return `${prod} (₹${o.amount} - ${o.status})`;
+      });
+
+      return {
+        ...p,
+        roles: roleDocs.filter((r) => r.userId === p._id).map((r) => r.role),
+        courses: userCourses,
+        applications: userApplications,
+        certificates: userCertificates,
+        referralActivity,
+        orders: ordersSummary,
+      };
+    });
+
+    res.json(enrichedUsers);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -94,13 +169,34 @@ router.get("/users", requireFirebaseAuth, async (req: AuthenticatedRequest, res)
 router.get("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await requireAdmin(req.user!.userId);
-    const docs = await courses().find({}).sort({ createdAt: -1 }).toArray();
+    const [docs, enrolls, profs] = await Promise.all([
+      courses().find({}).sort({ createdAt: -1 }).toArray(),
+      getDb().collection("course_enrollments").find({}).toArray(),
+      profiles().find({}).toArray(),
+    ]);
+
+    const profMap = new Map(profs.map(p => [p._id, p]));
+
     res.json(docs.map((c) => {
       const { _id, roadmap, ...rest } = c;
+      const courseEnrolls = enrolls.filter(e => e.courseId?.toString() === _id.toString());
+      const learners = courseEnrolls.map(e => {
+        const prof = profMap.get(e.userId);
+        return {
+          id: e.userId,
+          name: prof?.fullName || "Learner",
+          email: `${prof?.referralCode || e.userId.slice(0, 6)}@enginow.com`,
+          enrolledOn: e.enrolledAt ? new Date(e.enrolledAt).toISOString().split("T")[0] : "Recent",
+          progress: e.progress ?? 0,
+        };
+      });
+
       return {
         ...rest,
         id: _id.toString(),
         roadmap: roadmap || [],
+        enrollments: learners.length,
+        learners,
       };
     }));
   } catch (error: any) {
@@ -227,14 +323,26 @@ router.delete("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequ
 router.get("/internships", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await requireAdmin(req.user!.userId);
-    const docs = await getDb().collection("internships").find({}).sort({ createdAt: -1 }).toArray();
+    const [docs, apps] = await Promise.all([
+      getDb().collection("internships").find({}).sort({ createdAt: -1 }).toArray(),
+      getDb().collection("internship_applications").find({}).toArray(),
+    ]);
     const now = new Date();
     res.json(docs.map((d) => {
       const { _id, ...rest } = d;
-      const openFrom = new Date(rest.openFrom);
-      const openUntil = new Date(rest.openUntil);
+      const openFrom = rest.openFrom ? new Date(rest.openFrom) : new Date(0);
+      const openUntil = rest.openUntil ? new Date(rest.openUntil) : new Date(Date.now() + 120 * 86400000);
       const isOpen = now >= openFrom && now <= openUntil;
-      return { ...rest, id: _id.toString(), isOpen };
+      const applicants = apps.filter(a => a.internshipId?.toString() === _id.toString());
+      return {
+        ...rest,
+        id: _id.toString(),
+        isOpen,
+        applicantsCount: applicants.length,
+        perks: Array.isArray(rest.perks) ? rest.perks : [],
+        responsibilities: rest.responsibilities || "",
+        requirements: Array.isArray(rest.requirements) ? rest.requirements : [],
+      };
     }));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -283,17 +391,33 @@ router.post("/internships", requireFirebaseAuth, async (req: AuthenticatedReques
       status = "pending_approval";
     }
 
-    const { openFrom, openUntil } = calculateTimeline(data.type);
+    const calculated = calculateTimeline(data.type || "Summer");
+    const openFrom = data.openFrom ? new Date(data.openFrom) : calculated.openFrom;
+    const openUntil = data.openUntil ? new Date(data.openUntil) : calculated.openUntil;
 
-    const result = await getDb().collection("internships").insertOne({
-      _id: new ObjectId(),
+    const doc = {
       ...data,
+      company: data.company || "Enginow",
+      location: data.location || data.locationType || "Remote",
+      locationType: data.locationType || data.location || "Remote",
+      stipend: data.stipend || "Unpaid",
+      duration: data.duration || "2 Months",
+      perks: Array.isArray(data.perks) ? data.perks : [],
+      responsibilities: data.responsibilities || "",
+      requirements: Array.isArray(data.requirements) ? data.requirements : [],
+      tags: data.tags || "",
+      domain: data.domain || "",
       status,
       openFrom,
       openUntil,
       createdBy: req.user!.userId,
       createdAt: now,
       updatedAt: now,
+    };
+
+    const result = await getDb().collection("internships").insertOne({
+      _id: new ObjectId(),
+      ...doc,
     });
     await cacheDel(INTERNSHIPS_CACHE_KEY);
     res.json({ id: result.insertedId.toString() });
@@ -334,15 +458,25 @@ router.put("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedReq
       status = "pending_approval";
     }
     
-    // Recalculate timeline if type changed, otherwise we could just leave it. 
-    // Let's recalculate it to ensure correctness
-    const { openFrom, openUntil } = calculateTimeline(data.type);
+    const calculated = calculateTimeline(data.type || existing.type || "Summer");
+    const openFrom = data.openFrom ? new Date(data.openFrom) : (existing.openFrom ? new Date(existing.openFrom) : calculated.openFrom);
+    const openUntil = data.openUntil ? new Date(data.openUntil) : (existing.openUntil ? new Date(existing.openUntil) : calculated.openUntil);
     
     await getDb().collection("internships").updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: {
           ...data,
+          company: data.company || existing.company || "Enginow",
+          location: data.location || data.locationType || existing.location || "Remote",
+          locationType: data.locationType || data.location || existing.locationType || "Remote",
+          stipend: data.stipend ?? existing.stipend ?? "Unpaid",
+          duration: data.duration || existing.duration || "2 Months",
+          perks: Array.isArray(data.perks) ? data.perks : (existing.perks || []),
+          responsibilities: data.responsibilities !== undefined ? data.responsibilities : (existing.responsibilities || ""),
+          requirements: Array.isArray(data.requirements) ? data.requirements : (existing.requirements || []),
+          tags: data.tags !== undefined ? data.tags : (existing.tags || ""),
+          domain: data.domain !== undefined ? data.domain : (existing.domain || ""),
           status,
           openFrom,
           openUntil,
@@ -599,12 +733,35 @@ router.get("/internship-applications/:id/certificates", requireFirebaseAuth, asy
 router.get("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await requireAdmin(req.user!.userId);
-    const docs = await trainings().find({}).sort({ createdAt: -1 }).toArray();
+    const [docs, enrolls, profs] = await Promise.all([
+      trainings().find({}).sort({ createdAt: -1 }).toArray(),
+      getDb().collection("course_enrollments").find({}).toArray(),
+      profiles().find({}).toArray(),
+    ]);
+
+    const profMap = new Map(profs.map(p => [p._id, p]));
+
     res.json(docs.map((t) => {
-      const { _id, ...rest } = t;
+      const { _id, roadmap, youWillLearn, ...rest } = t;
+      const trainingEnrolls = enrolls.filter(e => e.trainingId?.toString() === _id.toString() || e.courseId?.toString() === _id.toString());
+      const learners = trainingEnrolls.map(e => {
+        const prof = profMap.get(e.userId);
+        return {
+          id: e.userId,
+          name: prof?.fullName || "Learner",
+          email: `${prof?.referralCode || e.userId.slice(0, 6)}@enginow.com`,
+          enrolledOn: e.enrolledAt ? new Date(e.enrolledAt).toISOString().split("T")[0] : "Recent",
+          progress: e.progress ?? 0,
+        };
+      });
+
       return {
         ...rest,
         id: _id.toString(),
+        roadmap: roadmap || [],
+        youWillLearn: Array.isArray(youWillLearn) ? youWillLearn : [],
+        enrollments: learners.length,
+        learners,
       };
     }));
   } catch (error: any) {
@@ -627,6 +784,7 @@ router.post("/trainings", requireFirebaseAuth, async (req: AuthenticatedRequest,
       ...req.body,
       status,
       roadmap: req.body.roadmap ?? [],
+      youWillLearn: Array.isArray(req.body.youWillLearn) ? req.body.youWillLearn : [],
       createdBy: req.user!.userId,
       createdAt: now,
       updatedAt: now,
@@ -739,14 +897,26 @@ const CAREERS_CACHE_KEY = "careers:all";
 router.get("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await requireAdmin(req.user!.userId);
-    const docs = await getDb().collection("careers").find({}).sort({ createdAt: -1 }).toArray();
+    const [docs, apps] = await Promise.all([
+      getDb().collection("careers").find({}).sort({ createdAt: -1 }).toArray(),
+      getDb().collection("career_applications").find({}).toArray(),
+    ]);
     const now = new Date();
     res.json(docs.map((d) => {
       const { _id, ...rest } = d;
-      const openFrom = new Date(rest.openFrom);
-      const openUntil = new Date(rest.openUntil);
+      const openFrom = rest.openFrom ? new Date(rest.openFrom) : new Date(0);
+      const openUntil = rest.openUntil ? new Date(rest.openUntil) : new Date(Date.now() + 120 * 86400000);
       const isOpen = now >= openFrom && now <= openUntil;
-      return { ...rest, id: _id.toString(), isOpen };
+      const applicants = apps.filter(a => a.careerId?.toString() === _id.toString());
+      return {
+        ...rest,
+        id: _id.toString(),
+        isOpen,
+        applicantsCount: applicants.length,
+        perks: Array.isArray(rest.perks) ? rest.perks : [],
+        responsibilities: rest.responsibilities || "",
+        requirements: Array.isArray(rest.requirements) ? rest.requirements : [],
+      };
     }));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -765,18 +935,32 @@ router.post("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, r
       status = "pending_approval";
     }
     
-    const openFrom = new Date(data.openFrom);
-    const openUntil = new Date(data.openUntil);
+    const openFrom = data.openFrom ? new Date(data.openFrom) : new Date();
+    const openUntil = data.openUntil ? new Date(data.openUntil) : new Date(Date.now() + 90 * 86400000);
 
-    const result = await getDb().collection("careers").insertOne({
-      _id: new ObjectId(),
+    const doc = {
       ...data,
+      company: data.company || "Enginow",
+      location: data.location || data.locationType || "Onsite",
+      locationType: data.locationType || data.location || "Onsite",
+      type: data.type || "Full-time",
+      salary: data.salary || "Competitive",
+      perks: Array.isArray(data.perks) ? data.perks : [],
+      responsibilities: data.responsibilities || "",
+      requirements: Array.isArray(data.requirements) ? data.requirements : [],
+      tags: data.tags || "",
+      domain: data.domain || "",
       status,
       openFrom,
       openUntil,
       createdBy: req.user!.userId,
       createdAt: now,
       updatedAt: now,
+    };
+
+    const result = await getDb().collection("careers").insertOne({
+      _id: new ObjectId(),
+      ...doc,
     });
     await cacheDel(CAREERS_CACHE_KEY);
     res.json({ id: result.insertedId.toString() });
@@ -817,14 +1001,24 @@ router.put("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest
       status = "pending_approval";
     }
 
-    const openFrom = new Date(data.openFrom);
-    const openUntil = new Date(data.openUntil);
+    const openFrom = data.openFrom ? new Date(data.openFrom) : (existing.openFrom ? new Date(existing.openFrom) : new Date());
+    const openUntil = data.openUntil ? new Date(data.openUntil) : (existing.openUntil ? new Date(existing.openUntil) : new Date(Date.now() + 90 * 86400000));
     
     await getDb().collection("careers").updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: {
           ...data,
+          company: data.company || existing.company || "Enginow",
+          location: data.location || data.locationType || existing.location || "Onsite",
+          locationType: data.locationType || data.location || existing.locationType || "Onsite",
+          type: data.type || existing.type || "Full-time",
+          salary: data.salary ?? existing.salary ?? "Competitive",
+          perks: Array.isArray(data.perks) ? data.perks : (existing.perks || []),
+          responsibilities: data.responsibilities !== undefined ? data.responsibilities : (existing.responsibilities || ""),
+          requirements: Array.isArray(data.requirements) ? data.requirements : (existing.requirements || []),
+          tags: data.tags !== undefined ? data.tags : (existing.tags || ""),
+          domain: data.domain !== undefined ? data.domain : (existing.domain || ""),
           status,
           openFrom,
           openUntil,
@@ -915,7 +1109,7 @@ router.get("/career-applications", requireFirebaseAuth, async (req: Authenticate
 // @ts-ignore
 router.put("/career-applications/:id/status", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireRoles(req.user!.userId, ["hr"]); // Changed to allow HR to update stages
+    await requireRoles(req.user!.userId, ["hr"]);
     const { status } = req.body;
     if (!["pending", "reviewing", "shortlisted", "oa", "selected", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
@@ -956,13 +1150,13 @@ router.post("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, 
     const newDoc = {
       name,
       slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      shortDescription,
-      description,
-      price: Number(price),
-      discountedPrice: Number(discountedPrice),
+      shortDescription: shortDescription || "",
+      description: description || "",
+      price: Number(price) || 0,
+      discountedPrice: Number(discountedPrice) || 0,
       images: images || [],
       rating: 0,
-      category,
+      category: category || "Merchandise",
       status: status || "draft",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1027,25 +1221,26 @@ router.get("/orders", requireFirebaseAuth, async (req: AuthenticatedRequest, res
     const docs = await orders().find({}).sort({ createdAt: -1 }).toArray();
     
     // Fetch product details
-    const productIds = docs.map(o => o.productId);
-    const prods = await products().find({ _id: { $in: productIds } }).toArray();
+    const prods = await products().find({}).toArray();
     const prodMap = new Map(prods.map(p => [p._id.toString(), p]));
 
     // Fetch user details
-    const userIds = docs.map(o => o.userId);
-    const profs = await profiles().find({ _id: { $in: userIds } }).toArray();
-    const profMap = new Map(profs.map(p => [p._id.toString(), p]));
+    const profs = await profiles().find({}).toArray();
+    const profMap = new Map(profs.map(p => [p._id, p]));
 
     const enriched = docs.map(o => {
       const { _id, ...rest } = o;
-      const product = prodMap.get(o.productId.toString());
+      const prodIdStr = o.productId ? o.productId.toString() : "";
+      const product = prodMap.get(prodIdStr);
       const profile = profMap.get(o.userId);
       return {
         ...rest,
         id: _id.toString(),
-        productId: o.productId.toString(),
-        productName: product?.name || "Unknown Product",
-        userFullName: profile?.fullName || "Unknown User",
+        productId: prodIdStr,
+        productName: product?.name || "Enginow Merchandise",
+        productImage: product?.images?.[0] || "",
+        userFullName: profile?.fullName || "Customer",
+        userEmail: `${profile?.referralCode || "user"}@enginow.com`,
       };
     });
 

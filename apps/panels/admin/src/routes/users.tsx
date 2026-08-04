@@ -191,26 +191,44 @@ function UsersPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={selected.active ? "active" : "deactivated"} />
                   <CodeChip code={selected.referralCode} label="Referral code" />
+                  {selected.collegeName && (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                      🎓 {selected.collegeName}
+                    </span>
+                  )}
                 </div>
 
                 <Tabs defaultValue="profile">
-                  <TabsList>
-                    <TabsTrigger value="profile">Profile</TabsTrigger>
-                    <TabsTrigger value="referrals">Referral activity</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="profile">Profile & Activity</TabsTrigger>
+                    <TabsTrigger value="referrals">Referrals ({selected.referralActivity.length})</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="profile" className="space-y-5 pt-4">
-                    <Section title="Courses they joined" items={selected.courses} empty="Hasn't joined a course yet." />
                     <Section
-                      title="Applications sent"
-                      items={selected.applications}
-                      empty="Hasn't applied to a job or internship yet."
+                      title="Courses & Trainings Enrolled"
+                      items={selected.courses}
+                      empty="Hasn't enrolled in any courses or training programs yet."
+                      badgeColor="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200"
                     />
                     <Section
-                      title="Certificates issued"
+                      title="Job & Internship Applications"
+                      items={selected.applications}
+                      empty="Hasn't applied to any jobs or internships yet."
+                      badgeColor="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200"
+                    />
+                    <Section
+                      title="Shop Purchases & Merchandise Orders"
+                      items={selected.orders || []}
+                      empty="No shop purchases yet."
+                      badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200"
+                    />
+                    <Section
+                      title="Certificates Issued"
                       items={selected.certificates}
                       empty="No certificates issued to this person yet."
                       mono
+                      badgeColor="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200"
                     />
                   </TabsContent>
 
@@ -231,9 +249,9 @@ function UsersPage() {
                         <TableBody>
                           {selected.referralActivity.map((a, i) => (
                             <TableRow key={i}>
-                              <TableCell>{a.joinedName}</TableCell>
-                              <TableCell>{a.sharedOn}</TableCell>
-                              <TableCell>{a.joinedOn}</TableCell>
+                              <TableCell className="font-medium">{a.joinedName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{a.sharedOn || "Link"}</TableCell>
+                              <TableCell className="text-xs">{a.joinedOn}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -301,25 +319,30 @@ function Section({
   items,
   empty,
   mono,
+  badgeColor,
 }: {
   title: string;
   items: string[];
   empty: string;
   mono?: boolean;
+  badgeColor?: string;
 }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-medium">{title}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
+        <p className="text-sm text-muted-foreground italic">{empty}</p>
       ) : (
-        <ul className="space-y-1 text-sm">
-          {items.map((i) => (
-            <li key={i} className={mono ? "font-mono text-xs" : undefined}>
-              {i}
-            </li>
+        <div className="space-y-1.5">
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              className={`rounded-lg border px-3 py-2 text-xs ${badgeColor || "bg-muted/30"} ${mono ? "font-mono" : ""}`}
+            >
+              {item}
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

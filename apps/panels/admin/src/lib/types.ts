@@ -28,7 +28,10 @@ export interface PanelUser {
   courses: string[];
   applications: string[];
   certificates: string[];
-  referralActivity: { code: string; sharedOn: string; joinedName: string; joinedOn: string }[];
+  referralActivity: { code?: string; sharedOn?: string; joinedName: string; joinedOn: string; resource?: string }[];
+  orders?: string[];
+  avatarUrl?: string;
+  collegeName?: string;
 }
 
 export interface Course {
@@ -43,11 +46,12 @@ export interface Course {
   description: string;
   bannerUrl?: string | undefined;
   videos: { url: string; notes: string }[];
-  roadmap: string[];
+  roadmap: any[];
+  youWillLearn?: string[];
   createdBy: string;
   createdByRole: Role;
   updatedAt: string;
-  learners: { name: string; email: string; enrolledOn: string }[];
+  learners: { id?: string; name: string; email: string; enrolledOn: string; progress?: number }[];
   rejectionReason?: string | undefined;
 }
 
@@ -83,9 +87,15 @@ export interface Internship {
   stipend?: string;
   duration: string;
   description: string;
+  responsibilities?: string;
   requirements: string[];
+  perks?: string[];
+  tags?: string;
   status: WorkStatus;
   isOpen?: boolean;
+  applicantsCount?: number;
+  openFrom?: string;
+  openUntil?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,9 +109,15 @@ export interface Career {
   domain?: string;
   salary?: string;
   description: string;
+  responsibilities?: string;
   requirements: string[];
+  perks?: string[];
+  tags?: string;
   status: WorkStatus;
   isOpen?: boolean;
+  applicantsCount?: number;
+  openFrom?: string;
+  openUntil?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,27 +125,38 @@ export interface Career {
 export interface Product {
   id: string;
   name: string;
+  slug?: string;
+  shortDescription?: string;
   description: string;
   price: number;
   discountedPrice?: number;
   category: string;
   imageUrl?: string;
-  stock: number;
-  status: "active" | "inactive";
+  images?: string[];
+  rating?: number;
+  stock?: number;
+  status: "active" | "inactive" | "published" | "draft";
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Order {
   id: string;
   userId: string;
   userName?: string;
+  userFullName?: string;
+  userEmail?: string;
+  productId?: string;
   productName?: string;
-  items: { productId: string; name: string; qty: number; price: number }[];
+  productImage?: string;
+  items?: { productId: string; name: string; qty: number; price: number }[];
+  amount?: number;
   total: number;
   status: "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
   trackingId?: string;
   trackingSite?: string;
   createdAt: string;
+  updatedAt?: string;
   address?: {
     state: string;
     city: string;

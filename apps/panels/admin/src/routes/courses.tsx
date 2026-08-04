@@ -308,17 +308,35 @@ function CoursesPage() {
                       </ul>
                     </div>
                     <div>
-                      <p className="mb-2 text-sm font-medium">Roadmap</p>
-                      <ol className="list-decimal space-y-1 pl-5 text-sm">
-                        {viewing.roadmap.map((r) => (
-                          <li key={r}>{r}</li>
+                      <p className="mb-2 text-sm font-medium">Roadmap & Curriculum</p>
+                      <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+                        {viewing.roadmap.map((r, idx) => (
+                          <li key={idx}>
+                            {typeof r === "object" && r !== null ? (
+                              <span>
+                                <span className="font-medium">{r.title || `Module ${idx + 1}`}</span>
+                                {r.videoUrl && (
+                                  <a
+                                    href={r.videoUrl}
+                                    className="ml-2 text-xs text-primary underline"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Watch Video
+                                  </a>
+                                )}
+                              </span>
+                            ) : (
+                              <span>{String(r)}</span>
+                            )}
+                          </li>
                         ))}
                       </ol>
                     </div>
                   </TabsContent>
                   <TabsContent value="learners" className="pt-4">
                     <p className="mb-3 text-sm text-muted-foreground">
-                      {viewing.enrollments} people have enrolled.
+                      {viewing.enrollments} total learners enrolled.
                     </p>
                     {viewing.learners.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
@@ -328,17 +346,23 @@ function CoursesPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Name</TableHead>
+                            <TableHead>Learner Name</TableHead>
                             <TableHead>Email</TableHead>
-                            <TableHead>Enrolled on</TableHead>
+                            <TableHead>Progress</TableHead>
+                            <TableHead>Enrolled On</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {viewing.learners.map((l) => (
-                            <TableRow key={l.email + l.enrolledOn}>
-                              <TableCell>{l.name}</TableCell>
-                              <TableCell>{l.email}</TableCell>
-                              <TableCell>{l.enrolledOn}</TableCell>
+                          {viewing.learners.map((l, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{l.name}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{l.email}</TableCell>
+                              <TableCell>
+                                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                  {l.progress !== undefined ? `${l.progress}%` : "100%"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs">{l.enrolledOn}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
