@@ -132,7 +132,6 @@ function QuestionCard({
 
 export default function AssessmentPage() {
   const { id } = useParams() as { id: string };
-  const router = useRouter();
   const { isAuthenticated } = useAuthContext();
 
   const [phase, setPhase] = useState<"loading" | "intro" | "module" | "transition" | "done">("loading");

@@ -512,6 +512,8 @@ export default function DashboardPage() {
                         <div className="mt-2 px-1">
                           <a
                             href={`/assessment/${app.assessmentId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
                             className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13.5px] font-semibold transition-all"
                             style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }}
@@ -594,6 +596,8 @@ export default function DashboardPage() {
                         <div className="mt-2 px-1">
                           <a
                             href={`/assessment/${app.assessmentId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
                             className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13.5px] font-semibold transition-all"
                             style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", color: "#fff" }}
