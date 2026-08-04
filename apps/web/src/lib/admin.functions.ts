@@ -23,6 +23,29 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   }
 }
 
+export interface UserRoleInfo {
+  role: "learner" | "educator" | "hr" | "sales" | "admin";
+  isStaff: boolean;
+  isAdmin: boolean;
+  isHr: boolean;
+  isEducator: boolean;
+  isSales: boolean;
+}
+
+export const getUserRole = async (): Promise<UserRoleInfo> => {
+  if (!firebaseAuth.currentUser) {
+    return {
+      role: "learner",
+      isStaff: false,
+      isAdmin: false,
+      isHr: false,
+      isEducator: false,
+      isSales: false,
+    };
+  }
+  return fetchWithAuth("/my-role");
+};
+
 export const isUserAdmin = async () => {
   if (!firebaseAuth.currentUser) return false;
   return fetchWithAuth("/is-admin");

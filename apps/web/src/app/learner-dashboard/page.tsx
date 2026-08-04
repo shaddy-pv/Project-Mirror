@@ -9,6 +9,7 @@ import {
   Clock3, ExternalLink, FileText, Shield, Lock, ChevronRight, ShoppingBag, Package
 } from "lucide-react";
 import { getMyEnrollments, getMyProfile } from "@/lib/courses.functions";
+import { getUserRole } from "@/lib/admin.functions";
 import { getMyInternshipApplications } from "@/lib/internships.functions";
 import { getMyCareerApplications } from "@/lib/careers.functions";
 import { getMyOrders, rateOrder } from "@/lib/shop.functions";
@@ -290,6 +291,11 @@ export default function DashboardPage() {
   const { data: careerApps = [] } = useQuery({ queryKey: ["my-career-applications"], queryFn: () => getMyCareerApplications() });
   const { data: myOrders = [] } = useQuery({ queryKey: ["my-orders"], queryFn: () => getMyOrders() });
   const auth = useAuthContext();
+  const { data: roleInfo } = useQuery({
+    queryKey: ["userRole", auth.user?.uid],
+    queryFn: () => getUserRole(),
+    enabled: !!auth.user?.uid,
+  });
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"courses" | "internships" | "careers" | "orders">("courses");
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
@@ -299,6 +305,21 @@ export default function DashboardPage() {
     const url = `${window.location.origin}/courses?ref=${profile.referralCode}`;
     navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); });
   }
+
+  const getPanelLabel = (role?: string) => {
+    switch (role) {
+      case "admin":
+        return "Admin Panel";
+      case "hr":
+        return "HR Panel";
+      case "educator":
+        return "Educator Panel";
+      case "sales":
+        return "Sales Panel";
+      default:
+        return "Staff Panel";
+    }
+  };
 
   const inProgress = (enrollments as EnrollmentItem[]).filter((e) => e.progress > 0 && e.progress < 100);
   const completed = (enrollments as EnrollmentItem[]).filter((e) => e.progress >= 100);
@@ -319,15 +340,26 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-[1440px]">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <span className="eyebrow">ΓÇö Learner surface</span>
+              <span className="eyebrow">Learner surface</span>
               <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }} className="display mt-3 text-4xl md:text-5xl" style={{ color: "var(--ink)" }}>
                 {auth.user?.displayName ? <>Hey, <span className="italic-serif" style={{ color: "#B8922E" }}>{auth.user.displayName.split(" ")[0]}</span>.</> : <>Your <span className="italic-serif" style={{ color: "#B8922E" }}>dashboard</span>.</>}
               </motion.h1>
               <p className="mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
-                Track your learning journey ΓÇö enrolled courses and internship applications, all in one place.
+                Track your learning journey enrolled courses and internship applications, all in one place.
               </p>
             </div>
-            <div className="flex items-center gap-3 self-start">
+            <div className="flex items-center gap-3 self-start flex-wrap">
+              {roleInfo && roleInfo.role !== "learner" && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:8080"}?role=${roleInfo.role}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full px-4 py-2 text-[12.5px] font-bold shadow-sm inline-flex items-center gap-1.5 transition-all hover:opacity-90"
+                  style={{ background: "var(--amber)", color: "var(--ink)", border: "0.8px solid rgba(21,23,28,0.12)" }}
+                >
+                  {getPanelLabel(roleInfo.role)} <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
               <Link href="/courses" className="btn-outline inline-flex">Browse courses</Link>
               <Link href="/internship" className="btn-amber inline-flex">Internships <ArrowRight className="h-4 w-4" /></Link>
             </div>

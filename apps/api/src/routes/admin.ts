@@ -68,8 +68,27 @@ async function requireRoles(userId: string, allowedRoles: AppRole[]) {
 // @ts-ignore
 router.get("/is-admin", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const adminRole = await userRoles().findOne({ userId: req.user!.userId, role: "admin" });
-    res.json(!!adminRole);
+    const roleDoc = await userRoles().findOne({ userId: req.user!.userId });
+    const isStaff = !!roleDoc && roleDoc.role !== "learner";
+    res.json(isStaff);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.get("/my-role", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const roleDoc = await userRoles().findOne({ userId: req.user!.userId });
+    const role = (roleDoc?.role as AppRole) || "learner";
+    res.json({
+      role,
+      isStaff: role !== "learner",
+      isAdmin: role === "admin",
+      isHr: role === "hr",
+      isEducator: role === "educator",
+      isSales: role === "sales",
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -234,7 +253,7 @@ router.post("/courses", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 // @ts-ignore
 router.get("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["educator"]);
     const id = String(req.params.id);
     const doc = await courses().findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Course not found" });
@@ -322,7 +341,7 @@ router.delete("/courses/:id", requireFirebaseAuth, async (req: AuthenticatedRequ
 // @ts-ignore
 router.get("/internships", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const [docs, apps] = await Promise.all([
       getDb().collection("internships").find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("internship_applications").find({}).toArray(),
@@ -429,7 +448,7 @@ router.post("/internships", requireFirebaseAuth, async (req: AuthenticatedReques
 // @ts-ignore
 router.get("/internships/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const id = String(req.params.id);
     const doc = await getDb().collection("internships").findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
@@ -540,7 +559,7 @@ router.delete("/internships/:id", requireFirebaseAuth, async (req: Authenticated
 // @ts-ignore
 router.get("/stats", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["educator", "hr", "sales"]);
     const [totalUsers, totalCourses, totalEnrollments] = await Promise.all([
       profiles().countDocuments(),
       courses().countDocuments(),
@@ -597,7 +616,7 @@ router.post("/set-role", requireFirebaseAuth, async (req: AuthenticatedRequest, 
 // @ts-ignore
 router.get("/internship-applications", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const { internshipId } = req.query;
 
     const filter: Record<string, unknown> = {};
@@ -657,7 +676,7 @@ router.patch("/internship-applications/:id/status", requireFirebaseAuth, async (
 // @ts-ignore
 router.post("/internship-applications/:id/certificate", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const applicationId = String(req.params.id);
 
     // Fetch the application to get userId, internshipId
@@ -896,7 +915,7 @@ const CAREERS_CACHE_KEY = "careers:all";
 // @ts-ignore
 router.get("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const [docs, apps] = await Promise.all([
       getDb().collection("careers").find({}).sort({ createdAt: -1 }).toArray(),
       getDb().collection("career_applications").find({}).toArray(),
@@ -972,7 +991,7 @@ router.post("/careers", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 // @ts-ignore
 router.get("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const id = String(req.params.id);
     const doc = await getDb().collection("careers").findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
@@ -1082,7 +1101,7 @@ router.delete("/careers/:id", requireFirebaseAuth, async (req: AuthenticatedRequ
 // @ts-ignore
 router.get("/career-applications", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["hr"]);
     const apps = await getDb().collection("career_applications").find({}).sort({ appliedAt: -1 }).toArray();
 
     const enriched = await Promise.all(apps.map(async (app) => {
@@ -1130,7 +1149,7 @@ router.put("/career-applications/:id/status", requireFirebaseAuth, async (req: A
 // @ts-ignore
 router.get("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["sales"]);
     const docs = await products().find({}).sort({ createdAt: -1 }).toArray();
     res.json(docs.map((d) => {
       const { _id, ...rest } = d;
@@ -1144,7 +1163,7 @@ router.get("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, r
 // @ts-ignore
 router.post("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["sales"]);
     const { name, slug, shortDescription, description, price, discountedPrice, images, category, status } = req.body;
 
     const newDoc = {
@@ -1173,7 +1192,7 @@ router.post("/products", requireFirebaseAuth, async (req: AuthenticatedRequest, 
 // @ts-ignore
 router.put("/products/:id", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["sales"]);
     const { name, slug, shortDescription, description, price, discountedPrice, images, category, status } = req.body;
 
     await products().updateOne(
@@ -1217,7 +1236,7 @@ router.delete("/products/:id", requireFirebaseAuth, async (req: AuthenticatedReq
 // @ts-ignore
 router.get("/orders", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["sales"]);
     const docs = await orders().find({}).sort({ createdAt: -1 }).toArray();
     
     // Fetch product details
@@ -1253,7 +1272,7 @@ router.get("/orders", requireFirebaseAuth, async (req: AuthenticatedRequest, res
 // @ts-ignore
 router.put("/orders/:id/tracking", requireFirebaseAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    await requireAdmin(req.user!.userId);
+    await requireRoles(req.user!.userId, ["sales"]);
     const { trackingId, trackingSite, status } = req.body;
     const updateFields: any = { updatedAt: new Date() };
     if (trackingId !== undefined) updateFields.trackingId = trackingId;
