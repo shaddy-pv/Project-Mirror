@@ -226,7 +226,7 @@ function AssessmentBuilder({
     if (!isValid) return;
     setSaving(true);
     try {
-      await onSave({ id: initial?.id, title, description, listingId, listingType, modules });
+      await onSave({ ...(initial?.id ? { id: initial.id } : {}), title, description, listingId, listingType, modules });
     } finally {
       setSaving(false);
     }
@@ -413,11 +413,11 @@ function AssessmentsPage() {
           subtitle={view === "create"
             ? "Build a 25-question MCQ assessment linked to an internship or career listing."
             : "Make changes to this assessment."}
-          action={<Button variant="outline" onClick={() => { setView("list"); setEditingId(null); }}>← Back</Button>}
+          actions={<Button variant="outline" onClick={() => { setView("list"); setEditingId(null); }}>← Back</Button>}
         />
         <AssessmentBuilder
-          initial={view === "edit" ? editData : undefined}
-          onSave={(data) => saveMut.mutateAsync(data)}
+          {...(view === "edit" && editData ? { initial: editData } : {})}
+          onSave={async (data) => { await saveMut.mutateAsync(data); }}
           onCancel={() => { setView("list"); setEditingId(null); }}
         />
       </div>
@@ -429,7 +429,7 @@ function AssessmentsPage() {
       <PageHeader
         title="Assessments"
         subtitle="Create and manage OA rounds linked to internship and career listings."
-        action={
+        actions={
           <Button onClick={() => { setEditData(undefined); setView("create"); }} className="gap-2">
             <Plus className="h-4 w-4" /> New Assessment
           </Button>
@@ -447,9 +447,9 @@ function AssessmentsPage() {
       ) : (assessments as Assessment[]).length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title="No assessments yet"
-          description="Create your first assessment to start sending OA rounds to candidates."
-          action={{ label: "Create Assessment", onClick: () => setView("create") }}
+          message="Create your first assessment to start sending OA rounds to candidates."
+          actionLabel="Create Assessment"
+          onAction={() => setView("create")}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
