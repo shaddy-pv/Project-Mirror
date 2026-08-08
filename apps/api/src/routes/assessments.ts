@@ -60,7 +60,7 @@ router.get("/:id/edit", requireStaffAuth, async (req: AuthenticatedStaffRequest,
     if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
       return res.status(403).json({ error: "Unauthorized" });
     }
-    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(req.params.id) });
+    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(req.params.id as string) });
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
     res.json({ ...assessment, id: assessment._id.toString(), _id: undefined });
   } catch (error: any) {
@@ -102,7 +102,7 @@ router.put("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res)
     if (err) return res.status(400).json({ error: err });
 
     await getDb().collection("assessments").updateOne(
-      { _id: new ObjectId(req.params.id) },
+      { _id: new ObjectId(req.params.id as string) },
       { $set: { ...req.body, updatedAt: new Date() } }
     );
     res.json({ success: true });
@@ -118,7 +118,7 @@ router.delete("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, r
     if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
       return res.status(403).json({ error: "Unauthorized" });
     }
-    await getDb().collection("assessments").deleteOne({ _id: new ObjectId(req.params.id) });
+    await getDb().collection("assessments").deleteOne({ _id: new ObjectId(req.params.id as string) });
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -133,7 +133,7 @@ router.get("/:id/results", requireStaffAuth, async (req: AuthenticatedStaffReque
       return res.status(403).json({ error: "Unauthorized" });
     }
     const results = await getDb().collection("assessment_sessions")
-      .find({ assessmentId: new ObjectId(req.params.id) })
+      .find({ assessmentId: new ObjectId(req.params.id as string) })
       .sort({ completedAt: -1 })
       .toArray();
     res.json(results.map(r => ({ ...r, id: r._id.toString(), _id: undefined })));
@@ -148,7 +148,7 @@ router.get("/:id/info", requireFirebaseAuth, async (req: AuthenticatedRequest, r
   try {
     const { id } = req.params;
     const userId = req.user!.userId;
-    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id) });
+    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id as string) });
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
 
     // Check eligibility: must have an application with status "oa" and assessmentId matching
@@ -163,7 +163,7 @@ router.get("/:id/info", requireFirebaseAuth, async (req: AuthenticatedRequest, r
     if (!hasAccess) return res.status(403).json({ error: "You are not authorised to take this assessment" });
 
     // Check if already completed
-    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
 
     // Strip correct answers
     const safeAssessment = {
@@ -203,7 +203,7 @@ router.post("/:id/start-module", requireFirebaseAuth, async (req: AuthenticatedR
     const userId = req.user!.userId;
 
     // Verify access
-    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id) });
+    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id as string) });
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
 
     const hasAccess = await (async () => {
@@ -215,7 +215,7 @@ router.post("/:id/start-module", requireFirebaseAuth, async (req: AuthenticatedR
     if (!hasAccess) return res.status(403).json({ error: "Unauthorised" });
 
     // Don't allow starting a module that's already been completed
-    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
     if (session?.completedModules?.includes(moduleIndex)) {
       return res.status(400).json({ error: "Module already completed" });
     }
@@ -223,9 +223,9 @@ router.post("/:id/start-module", requireFirebaseAuth, async (req: AuthenticatedR
     // Record start time (only once per module)
     const startKey = `moduleStarts.${moduleIndex}`;
     await getDb().collection("assessment_sessions").updateOne(
-      { assessmentId: new ObjectId(id), userId },
+      { assessmentId: new ObjectId(id as string), userId },
       {
-        $setOnInsert: { assessmentId: new ObjectId(id), userId, completedModules: [], createdAt: new Date() },
+        $setOnInsert: { assessmentId: new ObjectId(id as string), userId, completedModules: [], createdAt: new Date() },
         $set: { updatedAt: new Date() },
         // Only set start time if not already set
       },
@@ -233,10 +233,10 @@ router.post("/:id/start-module", requireFirebaseAuth, async (req: AuthenticatedR
     );
 
     // Set the start time only if not already set
-    const updated = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const updated = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
     if (!updated?.moduleStarts?.[moduleIndex]) {
       await getDb().collection("assessment_sessions").updateOne(
-        { assessmentId: new ObjectId(id), userId },
+        { assessmentId: new ObjectId(id as string), userId },
         { $set: { [`moduleStarts.${moduleIndex}`]: new Date() } }
       );
     }
@@ -255,11 +255,11 @@ router.post("/:id/submit-module", requireFirebaseAuth, async (req: Authenticated
     const { moduleIndex, answers } = req.body; // answers: { [questionIndex]: selectedOption }
     const userId = req.user!.userId;
 
-    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id) });
+    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(id as string) });
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
 
     // Check session & timer
-    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
     if (!session?.moduleStarts?.[moduleIndex]) {
       return res.status(400).json({ error: "Module not started" });
     }
@@ -282,7 +282,7 @@ router.post("/:id/submit-module", requireFirebaseAuth, async (req: Authenticated
     });
 
     await getDb().collection("assessment_sessions").updateOne(
-      { assessmentId: new ObjectId(id), userId },
+      { assessmentId: new ObjectId(id as string), userId },
       {
         $set: {
           [`moduleAnswers.${moduleIndex}`]: gradedAnswers,
@@ -307,7 +307,7 @@ router.post("/:id/complete", requireFirebaseAuth, async (req: AuthenticatedReque
     const { id } = req.params;
     const userId = req.user!.userId;
 
-    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const session = await getDb().collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
     if (!session) return res.status(400).json({ error: "No session found" });
     if (session.completedAt) return res.status(400).json({ error: "Already completed" });
 
@@ -316,7 +316,7 @@ router.post("/:id/complete", requireFirebaseAuth, async (req: AuthenticatedReque
     const totalScore = Object.values(moduleScores).reduce((sum: number, s: any) => sum + (s as number), 0);
 
     await getDb().collection("assessment_sessions").updateOne(
-      { assessmentId: new ObjectId(id), userId },
+      { assessmentId: new ObjectId(id as string), userId },
       { $set: { completedAt: new Date(), totalScore, updatedAt: new Date() } }
     );
 
@@ -345,11 +345,11 @@ router.get("/:id/results/:userId", requireStaffAuth, async (req: AuthenticatedSt
     const db = getDb();
     
     // Fetch the assessment (to get correct answers and questions)
-    const assessment = await db.collection("assessments").findOne({ _id: new ObjectId(id) });
+    const assessment = await db.collection("assessments").findOne({ _id: new ObjectId(id as string) });
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
 
     // Fetch the session
-    const session = await db.collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id), userId });
+    const session = await db.collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });
     if (!session) return res.status(404).json({ error: "Session not found for user" });
 
     // Send back a combined analysis payload

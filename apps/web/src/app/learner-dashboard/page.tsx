@@ -38,7 +38,7 @@ interface ApplicationItem {
   id: string;
   internshipId?: string;
   careerId?: string;
-  status: "pending" | "accepted" | "rejected" | "shortlisted" | "oa" | "selected" | "oa-cleared" | "oa-failed";
+  status: "pending" | "accepted" | "rejected" | "shortlisted" | "oa" | "selected" | "oa-cleared" | "oa-failed" | "interview";
   assessmentId?: string;
   hasCompletedOA?: boolean;
   appliedAt: string;

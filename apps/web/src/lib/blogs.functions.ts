@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/integrations/firebase/client";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api").replace("localhost", "127.0.0.1") + "/internships";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api").replace("localhost", "127.0.0.1") + "/blogs";
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
@@ -16,22 +16,23 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return data;
 }
 
-export const getInternships = async () => {
-  // Public route, no auth strictly required, but fetchWithAuth attaches if logged in
+export const getBlogs = async () => {
   const res = await fetch(API_URL);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Network error");
   return data;
 };
 
-export const applyForInternship = async ({ data }: { data: Record<string, unknown> & { internshipId: string } }) => {
-  const { internshipId, ...rest } = data;
-  return fetchWithAuth(`/${internshipId}/apply`, {
-    method: "POST",
-    body: JSON.stringify(rest),
-  });
+export const getBlogById = async (id: string) => {
+  const res = await fetch(`${API_URL}/${id}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Network error");
+  return data;
 };
 
-export const getMyInternshipApplications = async () => {
-  return fetchWithAuth("/my-applications");
+export const submitBlog = async ({ data }: { data: Record<string, unknown> }) => {
+  return fetchWithAuth("/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 };

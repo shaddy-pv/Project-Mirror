@@ -170,3 +170,16 @@ export interface Order {
     backSideName?: string;
   };
 }
+
+export interface Resource {
+  id: string;
+  title: string;
+  description?: string;
+  fileUrl: string;
+  subject: string;
+  type: string;
+  semester: string;
+  branch: string;
+  createdBy?: string;
+  createdAt?: string;
+}

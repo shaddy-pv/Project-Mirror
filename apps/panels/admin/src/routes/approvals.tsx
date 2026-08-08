@@ -8,7 +8,10 @@ import { EmptyState } from "@/components/panel/EmptyState";
 import { PageHeader } from "@/components/panel/PageHeader";
 import { RoleGuard } from "@/components/panel/RoleGuard";
 import { ApprovalBar } from "@/components/panel/ApprovalBar";
-import { listApprovals, setBlogStatus, setCourseStatus, type ApprovalItem } from "@/mocks/api";
+import {
+  listApprovals, setBlogStatus, setCourseStatus,
+  setInternshipStatus, setCareerStatus, type ApprovalItem
+} from "@/mocks/api";
 
 export const Route = createFileRoute("/approvals")({
   head: () => ({
@@ -48,14 +51,19 @@ function ApprovalsPage() {
       item: ApprovalItem;
       approve: boolean;
       reason?: string;
-    }): Promise<unknown> =>
-      item.type === "Course"
-        ? setCourseStatus(item.id, approve ? "live" : "rejected", reason)
-        : setBlogStatus(item.id, approve ? "live" : "rejected", reason),
+    }): Promise<unknown> => {
+      const status = approve ? "live" : "rejected";
+      if (item.type === "Course" || item.type === "Training") return setCourseStatus(item.id, status, reason);
+      if (item.type === "Internship") return setInternshipStatus(item.id, approve ? "open" : "rejected", reason);
+      if (item.type === "Career") return setCareerStatus(item.id, approve ? "open" : "rejected", reason);
+      return setBlogStatus(item.id, status, reason);
+    },
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       qc.invalidateQueries({ queryKey: ["blogs"] });
+      qc.invalidateQueries({ queryKey: ["internships"] });
+      qc.invalidateQueries({ queryKey: ["careers"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success(
         vars.approve

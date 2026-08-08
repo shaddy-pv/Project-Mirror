@@ -1,7 +1,7 @@
 import type { Blog, Course, PanelUser, Internship, Career, Product, Order } from "@/lib/types";
 import { getAuthToken } from "@/lib/session";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://127.0.0.1:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
@@ -132,7 +132,7 @@ export async function setCourseStatus(id: string, status: Course["status"], reas
 // ─── Blogs ────────────────────────────────────────────────────────────────────
 
 export async function listBlogs(): Promise<Blog[]> {
-  const data = await fetchApi("/blogs").catch(() => []);
+  const data = await fetchApi("/admin/blogs").catch(() => []);
   return data.map((b: any) => ({
     id: b._id || b.id,
     title: b.title || "",
@@ -153,9 +153,9 @@ export async function listBlogs(): Promise<Blog[]> {
 
 export async function saveBlog(input: Partial<Blog> & { id?: string }): Promise<Blog> {
   if (input.id) {
-    return fetchApi(`/blogs/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
+    return fetchApi(`/admin/blogs/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
   }
-  return fetchApi("/blogs", { method: "POST", body: JSON.stringify(input) });
+  return fetchApi("/admin/blogs", { method: "POST", body: JSON.stringify(input) });
 }
 
 export async function setBlogStatus(id: string, status: Blog["status"], reason?: string) {
@@ -164,7 +164,46 @@ export async function setBlogStatus(id: string, status: Blog["status"], reason?:
   if (action === "reject" && reason) {
     options.body = JSON.stringify({ reason });
   }
-  return fetchApi(`/blogs/${id}/${action}`, options);
+  return fetchApi(`/admin/blogs/${id}/${action}`, options);
+}
+
+// ─── Resources ────────────────────────────────────────────────────────────────
+
+export async function listResources(): Promise<any[]> {
+  const data = await fetchApi("/resources").catch(() => []);
+  return data.map((r: any) => ({
+    id: r._id || r.id,
+    title: r.title || "",
+    description: r.description || "",
+    fileUrl: r.fileUrl || "",
+    subject: r.subject || "",
+    type: r.type || "",
+    semester: r.semester || "",
+    branch: r.branch || "",
+    createdBy: r.createdBy || "Admin",
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+  }));
+}
+
+export async function saveResource(input: any): Promise<any> {
+  if (input.id) {
+    return fetchApi(`/resources/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
+  }
+  return fetchApi("/resources", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function deleteResource(id: string) {
+  return fetchApi(`/resources/${id}`, { method: "DELETE" });
+}
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+export async function listDocuments(): Promise<any[]> {
+  return fetchApi("/admin/documents").catch(() => []);
+}
+
+export async function generateDocument(input: any): Promise<any> {
+  return fetchApi("/admin/documents", { method: "POST", body: JSON.stringify(input) });
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -229,10 +268,12 @@ export interface ApprovalItem {
 }
 
 export async function listApprovals(): Promise<ApprovalItem[]> {
-  const [courses, trainings, blogs] = await Promise.all([
+  const [courses, trainings, blogs, internships, careers] = await Promise.all([
     fetchApi("/admin/courses").catch(() => []),
     fetchApi("/admin/trainings").catch(() => []),
-    fetchApi("/blogs").catch(() => []),
+    fetchApi("/admin/blogs").catch(() => []),
+    fetchApi("/admin/internships").catch(() => []),
+    fetchApi("/admin/careers").catch(() => []),
   ]);
   
   const c: ApprovalItem[] = courses
@@ -267,8 +308,30 @@ export async function listApprovals(): Promise<ApprovalItem[]> {
       submittedOn: x.updatedAt || new Date().toISOString(),
       preview: x.excerpt || x.description || "",
     }));
+
+  const i: ApprovalItem[] = internships
+    .filter((x: any) => x.status === "pending_approval")
+    .map((x: any) => ({
+      id: x._id || x.id,
+      type: "Internship",
+      title: x.title,
+      submittedBy: x.createdBy || "HR",
+      submittedOn: x.updatedAt || new Date().toISOString(),
+      preview: x.description || "",
+    }));
+
+  const ca: ApprovalItem[] = careers
+    .filter((x: any) => x.status === "pending_approval")
+    .map((x: any) => ({
+      id: x._id || x.id,
+      type: "Career",
+      title: x.title,
+      submittedBy: x.createdBy || "HR",
+      submittedOn: x.updatedAt || new Date().toISOString(),
+      preview: x.description || "",
+    }));
     
-  return [...c, ...t, ...b].sort((a, z) => (a.submittedOn < z.submittedOn ? 1 : -1));
+  return [...c, ...t, ...b, ...i, ...ca].sort((a, z) => (a.submittedOn < z.submittedOn ? 1 : -1));
 }
 
 // ─── Internships ──────────────────────────────────────────────────────────────
@@ -304,6 +367,15 @@ export async function saveInternship(input: Partial<Internship> & { id?: string 
     return fetchApi(`/admin/internships/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
   }
   return fetchApi("/admin/internships", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function setInternshipStatus(id: string, status: string, reason?: string) {
+  const action = status === "live" || status === "open" ? "approve" : "reject";
+  const options: RequestInit = { method: "PATCH" };
+  if (action === "reject" && reason) {
+    options.body = JSON.stringify({ reason });
+  }
+  return fetchApi(`/admin/internships/${id}/${action}`, options);
 }
 
 export async function deleteInternship(id: string) {
@@ -342,6 +414,15 @@ export async function saveCareer(input: Partial<Career> & { id?: string }): Prom
     return fetchApi(`/admin/careers/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
   }
   return fetchApi("/admin/careers", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function setCareerStatus(id: string, status: string, reason?: string) {
+  const action = status === "live" || status === "open" ? "approve" : "reject";
+  const options: RequestInit = { method: "PATCH" };
+  if (action === "reject" && reason) {
+    options.body = JSON.stringify({ reason });
+  }
+  return fetchApi(`/admin/careers/${id}/${action}`, options);
 }
 
 export async function deleteCareer(id: string) {

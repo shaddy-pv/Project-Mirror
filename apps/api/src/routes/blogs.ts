@@ -9,7 +9,15 @@ const router = Router();
 // @ts-ignore
 router.get("/", async (req, res) => {
   try {
-    const docs = await getDb().collection("blogs").find({ status: "published" }).sort({ createdAt: -1 }).toArray();
+    const authHeader = req.headers.authorization;
+    let query: any = { status: "published" };
+    
+    // If request comes with a Bearer token, assume it's from the staff panel and fetch all
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      query = {}; // all blogs
+    }
+
+    const docs = await getDb().collection("blogs").find(query).sort({ createdAt: -1 }).toArray();
     res.json(docs.map(d => {
       const { _id, ...rest } = d;
       return { ...rest, id: _id.toString() };

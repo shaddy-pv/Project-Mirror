@@ -85,8 +85,9 @@ export default function InternshipsPage() {
     });
   }
 
+  const typeParam = searchParams.get("type");
   const [search, setSearch] = useState("");
-  const [activeType, setActiveType] = useState("All");
+  const [activeType, setActiveType] = useState(typeParam && TYPES.includes(typeParam) ? typeParam : "All");
 
   const [selectedInternship, setSelectedInternship] = useState<InternshipItem | null>(null);
 

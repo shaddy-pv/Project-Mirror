@@ -11,12 +11,14 @@ export type ModuleKey =
   | "shop"
   | "blogs"
   | "assessments"
+  | "resources"
+  | "documents"
   | "settings";
 
 export const ACCESS: Record<Role, ModuleKey[]> = {
-  admin: ["dashboard", "approvals", "users", "courses", "internships", "careers", "shop", "blogs", "assessments", "settings"],
-  educator: ["dashboard", "courses", "blogs", "settings"],
-  hr: ["dashboard", "internships", "careers", "assessments", "blogs", "settings"],
+  admin: ["dashboard", "approvals", "users", "courses", "internships", "careers", "shop", "blogs", "assessments", "resources", "documents", "settings"],
+  educator: ["dashboard", "courses", "blogs", "resources", "settings"],
+  hr: ["dashboard", "internships", "careers", "assessments", "blogs", "documents", "settings"],
   sales: ["dashboard", "shop", "blogs", "settings"],
 };
 

@@ -181,6 +181,82 @@ router.get("/users", requireStaffAuth, async (req: AuthenticatedStaffRequest, re
   }
 });
 
+// ─── BLOGS ───────────────────────────────────────────────────────────────────
+
+// @ts-ignore
+router.get("/blogs", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    const docs = await getDb().collection("blogs").find({}).sort({ createdAt: -1 }).toArray();
+    res.json(docs);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.post("/blogs", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    const now = new Date();
+    const doc = {
+      ...req.body,
+      status: req.body.status || "draft",
+      authorId: req.staff!.staffId,
+      author: req.staff!.name,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const result = await getDb().collection("blogs").insertOne({ _id: new ObjectId(), ...doc });
+    res.json({ id: result.insertedId.toString(), ...doc });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.put("/blogs/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    await getDb().collection("blogs").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...req.body, updatedAt: new Date() } }
+    );
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.patch("/blogs/:id/approve", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkAdmin(req);
+    const id = String(req.params.id);
+    await getDb().collection("blogs").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: "published", updatedAt: new Date(), rejectionReason: "" } }
+    );
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.patch("/blogs/:id/reject", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkAdmin(req);
+    const id = String(req.params.id);
+    const { reason } = req.body;
+    await getDb().collection("blogs").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: "draft", rejectionReason: reason || "Rejected", updatedAt: new Date() } }
+    );
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── COURSES ─────────────────────────────────────────────────────────────────
 
 // @ts-ignore
@@ -713,6 +789,68 @@ router.post("/internship-applications/:id/certificate", requireStaffAuth, async 
     );
 
     res.json({ success: true, certificateId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.get("/documents", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkRoles(req, ["hr", "admin"]);
+    const docs = await getDb().collection("certificates").find({}).sort({ issuedAt: -1 }).toArray();
+    res.json(docs.map(d => ({
+      ...d,
+      id: d._id.toString(),
+      applicationId: d.applicationId?.toString(),
+      userId: d.userId?.toString(),
+      internshipId: d.internshipId?.toString(),
+    })));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @ts-ignore
+router.post("/documents", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response) => {
+  try {
+    checkRoles(req, ["hr", "admin"]);
+    const { type, recipientName, userId, internshipId, internshipTitle, customDocumentBase64 } = req.body;
+    
+    const validTypes = ["completion", "lor", "loe", "offer_letter", "certificate"];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: "Invalid document type" });
+
+    const year = new Date().getFullYear();
+    const uniquePart = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const certificateId = `ENG-${year}-${uniquePart}`;
+
+    const cert = {
+      _id: new ObjectId(),
+      certificateId,
+      userId: userId ? new ObjectId(userId) : null,
+      internshipId: internshipId ? new ObjectId(internshipId) : null,
+      internshipTitle: internshipTitle || "Internship / Career",
+      internshipDomain: "",
+      type,
+      recipientName: recipientName || "Candidate",
+      issuedBy: req.staff!.staffId,
+      issuedAt: new Date(),
+      verifyUrl: `/verify/${certificateId}`,
+    };
+
+    let base64Data = customDocumentBase64;
+    if (!base64Data) {
+      base64Data = await generateCertificatePdf(cert);
+    }
+    
+    const finalCert = {
+      ...cert,
+      customDocumentBase64: base64Data,
+    };
+
+    await getDb().collection("certificates").insertOne(finalCert);
+
+    res.json({ success: true, certificateId, document: finalCert });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

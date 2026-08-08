@@ -14,6 +14,7 @@ import {
   Settings,
   ShoppingBag,
   Users,
+  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { canAccess, useSession, type ModuleKey } from "@/lib/session";
@@ -21,7 +22,7 @@ import { ROLE_LABELS, type Role } from "@/lib/types";
 import { listApprovals } from "@/mocks/api";
 import { cn } from "@/lib/utils";
 
-const NAV: { to: string; label: string; icon: typeof Users; module: ModuleKey }[] = [
+const NAV: { to: string; label: string; icon: any; module: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   { to: "/approvals", label: "Approvals Inbox", icon: Inbox, module: "approvals" },
   { to: "/users", label: "Users & Referrals", icon: Users, module: "users" },
@@ -29,8 +30,10 @@ const NAV: { to: string; label: string; icon: typeof Users; module: ModuleKey }[
   { to: "/internships", label: "Internships", icon: Briefcase, module: "internships" },
   { to: "/careers", label: "Careers", icon: Building2, module: "careers" },
   { to: "/assessments", label: "Assessments", icon: ClipboardList, module: "assessments" },
+  { to: "/documents", label: "Documents", icon: FileText, module: "documents" },
   { to: "/shop", label: "Shop", icon: ShoppingBag, module: "shop" },
   { to: "/blogs", label: "Blogs", icon: FileText, module: "blogs" },
+  { to: "/resources", label: "Resources", icon: Folder, module: "resources" },
   { to: "/settings", label: "Settings", icon: Settings, module: "settings" },
 ];
 
@@ -42,8 +45,10 @@ const TITLES: Record<string, string> = {
   "/internships": "Internships",
   "/careers": "Careers",
   "/assessments": "Assessments",
+  "/documents": "Documents",
   "/shop": "Shop",
   "/blogs": "Blogs",
+  "/resources": "Resources",
   "/settings": "Settings",
 };
 

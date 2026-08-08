@@ -15,7 +15,9 @@ import { Route as AssessmentsRouteImport } from './routes/assessments'
 import { Route as BlogsRouteImport } from './routes/blogs'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as InternshipsRouteImport } from './routes/internships'
+import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as UsersRouteImport } from './routes/users'
@@ -51,9 +53,19 @@ const CoursesRoute = CoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InternshipsRoute = InternshipsRouteImport.update({
   id: '/internships',
   path: '/internships',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -85,7 +97,9 @@ export interface FileRoutesByFullPath {
   '/blogs': typeof BlogsRoute
   '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/documents': typeof DocumentsRoute
   '/internships': typeof InternshipsRoute
+  '/resources': typeof ResourcesRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
@@ -98,7 +112,9 @@ export interface FileRoutesByTo {
   '/blogs': typeof BlogsRoute
   '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/documents': typeof DocumentsRoute
   '/internships': typeof InternshipsRoute
+  '/resources': typeof ResourcesRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
@@ -112,7 +128,9 @@ export interface FileRoutesById {
   '/blogs': typeof BlogsRoute
   '/careers': typeof CareersRoute
   '/courses': typeof CoursesRoute
+  '/documents': typeof DocumentsRoute
   '/internships': typeof InternshipsRoute
+  '/resources': typeof ResourcesRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/users': typeof UsersRoute
@@ -127,7 +145,9 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/careers'
     | '/courses'
+    | '/documents'
     | '/internships'
+    | '/resources'
     | '/settings'
     | '/shop'
     | '/users'
@@ -140,7 +160,9 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/careers'
     | '/courses'
+    | '/documents'
     | '/internships'
+    | '/resources'
     | '/settings'
     | '/shop'
     | '/users'
@@ -153,7 +175,9 @@ export interface FileRouteTypes {
     | '/blogs'
     | '/careers'
     | '/courses'
+    | '/documents'
     | '/internships'
+    | '/resources'
     | '/settings'
     | '/shop'
     | '/users'
@@ -167,7 +191,9 @@ export interface RootRouteChildren {
   BlogsRoute: typeof BlogsRoute
   CareersRoute: typeof CareersRoute
   CoursesRoute: typeof CoursesRoute
+  DocumentsRoute: typeof DocumentsRoute
   InternshipsRoute: typeof InternshipsRoute
+  ResourcesRoute: typeof ResourcesRoute
   SettingsRoute: typeof SettingsRoute
   ShopRoute: typeof ShopRoute
   UsersRoute: typeof UsersRoute
@@ -218,11 +244,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/internships': {
       id: '/internships'
       path: '/internships'
       fullPath: '/internships'
       preLoaderRoute: typeof InternshipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -263,7 +303,9 @@ const rootRouteChildren: RootRouteChildren = {
   BlogsRoute: BlogsRoute,
   CareersRoute: CareersRoute,
   CoursesRoute: CoursesRoute,
+  DocumentsRoute: DocumentsRoute,
   InternshipsRoute: InternshipsRoute,
+  ResourcesRoute: ResourcesRoute,
   SettingsRoute: SettingsRoute,
   ShopRoute: ShopRoute,
   UsersRoute: UsersRoute,

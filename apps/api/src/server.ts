@@ -13,6 +13,8 @@ import blogsRoutes from "./routes/blogs";
 import assessmentsRoutes from "./routes/assessments";
 import inquiriesRoutes from "./routes/inquiries";
 import salesRoutes from "./routes/sales";
+import resourcesRoutes from "./routes/resources";
+import practiceRoutes from "./routes/practice";
 import { staffAuthRouter, seedStaffAccounts } from "./routes/staffAuth";
 import { initDb, getDb } from "./db";
 
@@ -38,6 +40,8 @@ app.use("/api/blogs", blogsRoutes);
 app.use("/api/assessments", assessmentsRoutes);
 app.use("/api/inquiries", inquiriesRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/resources", resourcesRoutes);
+app.use("/api/practice", practiceRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
