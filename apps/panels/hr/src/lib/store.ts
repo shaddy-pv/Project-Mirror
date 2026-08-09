@@ -37,14 +37,15 @@ interface SessionState {
 const initialAuth = getStoredAuth();
 
 export const useSession = create<SessionState>((set) => ({
-  isAuthenticated: Boolean(initialAuth && initialAuth.user.role === "hr"),
+  isAuthenticated: Boolean(initialAuth && (initialAuth.user.role === "hr" || initialAuth.user.role === "admin")),
   role: initialAuth?.user?.role || "hr",
-  name: initialAuth?.user?.name || "HR Staff",
-  email: initialAuth?.user?.email || "hr@enginow.in",
+  name: initialAuth?.user?.name || "",
+  email: initialAuth?.user?.email || "",
 
   login: async (identifier, password) => {
     try {
-      const res = await fetch("http://localhost:5000/api/staff/login", {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${baseUrl}/staff/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password, portal: "hr" }),
@@ -56,7 +57,7 @@ export const useSession = create<SessionState>((set) => ({
       }
 
       const user = data.staff || data.user;
-      if (!user || user.role !== "hr") {
+      if (!user || (user.role !== "hr" && user.role !== "admin")) {
         return { success: false, error: "Access denied: This account is not authorized for the HR panel." };
       }
 
@@ -79,31 +80,8 @@ export const useSession = create<SessionState>((set) => ({
       });
 
       return { success: true };
-    } catch {
-      // Fallback
-      const id = identifier.toLowerCase().trim();
-      if (id === "hr@enginow.in" || id === "hr") {
-        if (password === "password@123") {
-          const authData: StoredAuth = {
-            token: "mock-hr-token-" + Date.now(),
-            user: { id: "hr-1", name: "Priya Raghavan", email: "hr@enginow.in", role: "hr" },
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
-          set({
-            isAuthenticated: true,
-            role: "hr",
-            name: "Priya Raghavan",
-            email: "hr@enginow.in",
-          });
-          return { success: true };
-        } else {
-          return { success: false, error: "Incorrect password." };
-        }
-      } else if (["admin@enginow.in", "educator@enginow.in", "sales@enginow.in", "admin", "educator", "sales"].includes(id)) {
-        return { success: false, error: `Access denied: ${id} is not an HR account and cannot access the HR panel.` };
-      } else {
-        return { success: false, error: "Invalid staff identifier or password." };
-      }
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to connect to authentication server." };
     }
   },
 
@@ -112,8 +90,8 @@ export const useSession = create<SessionState>((set) => ({
     set({
       isAuthenticated: false,
       role: "hr",
-      name: "HR Staff",
-      email: "hr@enginow.in",
+      name: "",
+      email: "",
     });
   },
 }));

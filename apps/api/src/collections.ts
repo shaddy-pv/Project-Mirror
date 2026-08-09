@@ -26,6 +26,8 @@ export interface StaffAccountDoc {
   passwordHash: string;
   role: StaffRole;
   name: string;
+  phone?: string;
+  settings?: any;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

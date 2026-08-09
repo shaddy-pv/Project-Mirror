@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ArrowLeft, CheckCircle2, XCircle, Clock3, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { getOAResultAnalysis, updateInternshipApplicationStatus, updateCareerApplicationStatus } from "@/mocks/api";
+import { getOAResultAnalysis, updateInternshipApplicationStatus, updateCareerApplicationStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/oa-result/$assessmentId/$userId")({
   component: OAResultPage,

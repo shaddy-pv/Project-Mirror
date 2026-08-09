@@ -17,7 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { api, qk } from "@/lib/api";
-import type { Inquiry, InquiryStatus } from "@/lib/mock/db";
+import type { Inquiry, InquiryStatus } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/inquiries")({
@@ -48,10 +48,10 @@ function InquiriesPage() {
 
   const setStatus = useMutation({
     mutationFn: (vars: { id: string; status: InquiryStatus }) =>
-      api.updateInquiry(vars.id, { status: vars.status }),
-    onSuccess: (updated) => {
+      api.updateInquiry(vars.id, vars.status),
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: qk.inquiries });
-      toast.success(updated.status === "Responded" ? "Marked responded" : "Marked closed");
+      toast.success(vars.status === "reviewed" ? "Marked as reviewed" : "Marked resolved");
     },
     onError: () => toast.error("Couldn't update this inquiry. Please try again."),
   });
@@ -139,16 +139,16 @@ function InquiriesPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     disabled={setStatus.isPending}
-                    onClick={() => setStatus.mutate({ id: selected.id, status: "Responded" })}
+                    onClick={() => setStatus.mutate({ id: selected.id, status: "reviewed" })}
                   >
-                    Mark responded
+                    Mark reviewed
                   </Button>
                   <Button
                     variant="outline"
                     disabled={setStatus.isPending}
-                    onClick={() => setStatus.mutate({ id: selected.id, status: "Closed" })}
+                    onClick={() => setStatus.mutate({ id: selected.id, status: "resolved" })}
                   >
-                    Mark closed
+                    Mark resolved
                   </Button>
                 </div>
               </div>

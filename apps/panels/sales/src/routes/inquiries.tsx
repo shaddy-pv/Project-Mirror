@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchInquiries, updateInquiryStatus } from "@/lib/sales-api";
-import type { Inquiry, InquiryStatus } from "@/lib/sales-data";
+import { fetchInquiries, updateInquiryStatus, type InquiryStatus, type Inquiry } from "@/lib/sales-api";
+
 
 export const Route = createFileRoute("/inquiries")({
   head: () => ({
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/inquiries")({
 
 const HELP = [
   { title: "What's in this list", body: "Only enquiries people sent through the Sales form on the website. Career and other enquiries go to different teams." },
-  { title: "Status", body: "New means nobody has replied yet. Responded means you've written back. Closed means the conversation is finished." },
+  { title: "Status", body: "New means nobody has replied yet. Contacted means you've reached out. Converted means they bought a course. Lost means the lead is dead." },
 ];
 
 const fmtDate = (d: string) =>
@@ -48,6 +48,7 @@ function InquiriesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState<Inquiry | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | InquiryStatus>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | string>("all");
 
   const { data, isPending } = useQuery({ queryKey: ["inquiries"], queryFn: fetchInquiries });
 
@@ -60,7 +61,10 @@ function InquiriesPage() {
     },
   });
 
-  const rows = (data ?? []).filter((i) => statusFilter === "all" || i.status === statusFilter);
+  const rows = (data ?? []).filter((i) => 
+    (statusFilter === "all" || i.status === statusFilter) &&
+    (categoryFilter === "all" || i.category === categoryFilter)
+  );
 
   const columns: Column<Inquiry>[] = [
     { key: "name", header: "Name", sortable: true, value: (r) => r.name, className: "font-medium" },
@@ -70,6 +74,7 @@ function InquiriesPage() {
       header: "Message",
       cell: (r) => <span className="line-clamp-1 max-w-[380px] text-muted-foreground">{r.message}</span>,
     },
+    { key: "category", header: "Category", sortable: true, value: (r) => r.category, className: "font-medium" },
     { key: "date", header: "Date", sortable: true, value: (r) => +new Date(r.date), cell: (r) => fmtDate(r.date) },
     { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
   ];
@@ -89,20 +94,34 @@ function InquiriesPage() {
           rows={rows}
           columns={columns}
           searchPlaceholder="Search by name, email or message…"
-          searchKeys={(r) => `${r.name} ${r.email} ${r.message}`}
+          searchKeys={(r) => `${r.name} ${r.email} ${r.message} ${r.category}`}
           onRowClick={setOpen}
           toolbar={
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-              <SelectTrigger className="w-[170px] bg-card" aria-label="Filter by status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="New">New</SelectItem>
-                <SelectItem value="Responded">Responded</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                <SelectTrigger className="w-[170px] bg-card" aria-label="Filter by status">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="New">New</SelectItem>
+                  <SelectItem value="Contacted">Contacted</SelectItem>
+                  <SelectItem value="Converted">Converted</SelectItem>
+                  <SelectItem value="Lost">Lost</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+                <SelectTrigger className="w-[170px] bg-card" aria-label="Filter by category">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  <SelectItem value="Sales">Sales</SelectItem>
+                  <SelectItem value="Career">Career</SelectItem>
+                  <SelectItem value="Custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           }
           emptyState={
             <EmptyState
@@ -139,6 +158,10 @@ function InquiriesPage() {
                   <p className="font-medium">{open.phone}</p>
                 </div>
                 <div className="space-y-1 text-sm">
+                  <p className="text-muted-foreground">Category</p>
+                  <p className="font-medium">{open.category}</p>
+                </div>
+                <div className="space-y-1 text-sm">
                   <p className="text-muted-foreground">Message</p>
                   <p className="rounded-lg bg-secondary p-3 leading-relaxed">{open.message}</p>
                 </div>
@@ -149,17 +172,25 @@ function InquiriesPage() {
                     </a>
                   </Button>
                   <Button
-                    disabled={open.status === "Responded" || mutation.isPending}
-                    onClick={() => mutation.mutate({ id: open.id, status: "Responded" })}
+                    disabled={open.status === "Contacted" || mutation.isPending}
+                    onClick={() => mutation.mutate({ id: open.id, status: "Contacted" })}
                   >
-                    Mark responded
+                    Mark Contacted
                   </Button>
                   <Button
                     variant="secondary"
-                    disabled={open.status === "Closed" || mutation.isPending}
-                    onClick={() => mutation.mutate({ id: open.id, status: "Closed" })}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={open.status === "Converted" || mutation.isPending}
+                    onClick={() => mutation.mutate({ id: open.id, status: "Converted" })}
                   >
-                    Mark closed
+                    Mark Converted
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={open.status === "Lost" || mutation.isPending}
+                    onClick={() => mutation.mutate({ id: open.id, status: "Lost" })}
+                  >
+                    Mark Lost
                   </Button>
                 </div>
               </div>

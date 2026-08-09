@@ -78,7 +78,7 @@ function ResourcesPage() {
       ),
     },
     { key: "tag", header: "Tag", render: (r) => r.tag },
-    { key: "uploaded", header: "Uploaded", sortable: true, sortValue: (r) => r.uploadedAt, render: (r) => fmt(r.uploadedAt) },
+    { key: "uploaded", header: "Uploaded", sortable: true, sortValue: (r) => r.createdAt, render: (r) => fmt(r.createdAt) },
     {
       key: "downloads",
       header: "Downloads",

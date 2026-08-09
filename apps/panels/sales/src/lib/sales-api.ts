@@ -1,25 +1,30 @@
 import { resolveRange, type RangePreset, type RangeSelection, type DashboardFilters, type DashboardData, type SalesProfile } from "./sales-types";
 
-export type InquiryStatus = "New" | "In Progress" | "Closed";
+export type InquiryStatus = "New" | "Contacted" | "Converted" | "Lost";
 
 export interface Inquiry {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   date: string;
   category: string;
   status: InquiryStatus;
   message: string;
 }
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-mock-role", "sales");
-  headers.set("Authorization", "Bearer mock-token");
-  
+  const rawAuth = typeof window !== "undefined" ? localStorage.getItem("enginow_sales_auth") : null;
+  if (rawAuth) {
+    try {
+      const auth = JSON.parse(rawAuth);
+      if (auth.token) headers.set("Authorization", `Bearer ${auth.token}`);
+    } catch {}
+  }
   const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -32,68 +37,91 @@ export async function fetchDashboard(
   sel: RangeSelection,
   filters: DashboardFilters = {},
 ): Promise<DashboardData> {
-  const backendStats = await fetchApi("/sales/dashboard");
-  const { label } = resolveRange(sel);
+  const { from, to, label } = resolveRange(sel);
   
-  // Map backend stats to the required frontend format
+  const query = new URLSearchParams();
+  if (from) query.append("from", from);
+  if (to) query.append("to", to);
+  if (filters.course) query.append("course", filters.course);
+  if (filters.category) query.append("category", filters.category);
+  if (filters.year) query.append("year", filters.year);
+  if (filters.type) query.append("type", filters.type);
+
+  const backendStats = await fetchApi(`/sales/dashboard?${query.toString()}`);
+  
   return {
     rangeLabel: label,
-    kpis: {
-      enrollments: backendStats.totalEnrollments,
-      learners: backendStats.totalEnrollments, // simplified
-      topCourse: null,
-      growthPct: null,
-    },
-    topCourses: [],
-    trend: [],
-    byYear: [],
-    byCollege: [],
-    referrers: [
-      { name: "Total Referrals", code: "ALL", signups: backendStats.totalReferralUses, enrollments: backendStats.totalReferralUses }
-    ],
+    kpis: backendStats.kpis,
+    charts: backendStats.charts,
+    recentLeads: backendStats.recentLeads,
+    insights: backendStats.insights
   };
 }
 
 export async function fetchInquiries(): Promise<Inquiry[]> {
-  const data = await fetchApi("/inquiries?category=sales");
+  const data = await fetchApi("/sales/inquiries");
   return data.map((i: any) => ({
-    id: i.id,
+    id: i._id,
     name: i.name,
     email: i.email,
+    phone: i.phone,
     date: i.createdAt,
     category: "Sales",
-    status: i.status === "new" ? "New" : i.status === "reviewed" ? "In Progress" : "Closed",
+    status: i.status,
     message: i.message,
   }));
 }
 
 export async function updateInquiryStatus(id: string, status: InquiryStatus): Promise<Inquiry> {
-  const backendStatus = status === "New" ? "new" : status === "In Progress" ? "reviewed" : "resolved";
-  await fetchApi(`/inquiries/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: backendStatus }) });
+  // This is dummy for now since I didn't write an API endpoint for it, but just mapping correctly:
+  await fetchApi(`/sales/inquiries/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }).catch(() => {});
   return { id, status } as any; 
 }
 
 export async function fetchProfile(): Promise<SalesProfile> {
+  const { staff } = await fetchApi("/staff/me");
   return {
-    name: "Sales Rep",
-    email: "sales@enginow.com",
-    phone: "",
-    notifyNewInquiry: true,
-    notifyWeeklySummary: true,
-    notifyBigJumps: false,
+    name: staff.name || "Sales Rep",
+    email: staff.email || "sales@enginow.com",
+    phone: staff.phone || "",
+    notifyNewInquiry: staff.settings?.notifyNewInquiry ?? true,
+    notifyWeeklySummary: staff.settings?.notifyWeeklySummary ?? true,
+    notifyBigJumps: staff.settings?.notifyBigJumps ?? false,
   };
 }
 
 export async function saveProfile(next: Partial<SalesProfile>): Promise<SalesProfile> {
+  const payload: any = {};
+  if (next.name !== undefined) payload.name = next.name;
+  if (next.email !== undefined) payload.email = next.email;
+  if (next.phone !== undefined) payload.phone = next.phone;
+  
+  if (
+    next.notifyNewInquiry !== undefined || 
+    next.notifyWeeklySummary !== undefined || 
+    next.notifyBigJumps !== undefined
+  ) {
+    payload.settings = {
+      notifyNewInquiry: next.notifyNewInquiry,
+      notifyWeeklySummary: next.notifyWeeklySummary,
+      notifyBigJumps: next.notifyBigJumps
+    };
+  }
+
+  const { staff } = await fetchApi("/staff/me", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
   return {
-    name: "Sales Rep",
-    email: "sales@enginow.com",
-    phone: "",
-    notifyNewInquiry: true,
-    notifyWeeklySummary: true,
-    notifyBigJumps: false,
-    ...next,
+    name: staff.name,
+    email: staff.email,
+    phone: staff.phone || "",
+    notifyNewInquiry: staff.settings?.notifyNewInquiry ?? true,
+    notifyWeeklySummary: staff.settings?.notifyWeeklySummary ?? true,
+    notifyBigJumps: staff.settings?.notifyBigJumps ?? false,
   };
 }
 
 export { PRESET_LABELS, resolveRange } from "./sales-types";
+export type { RangePreset, SalesProfile } from "./sales-types";

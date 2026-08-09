@@ -1,13 +1,18 @@
 import { session } from "./role";
 import type { Blog, Course, Learner, Profile, Resource } from "./mock/types";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-mock-role", session.role);
-  headers.set("Authorization", "Bearer mock-token");
+  const rawAuth = typeof window !== "undefined" ? localStorage.getItem("enginow_educator_auth") : null;
+  if (rawAuth) {
+    try {
+      const auth = JSON.parse(rawAuth);
+      if (auth.token) headers.set("Authorization", `Bearer ${auth.token}`);
+    } catch {}
+  }
   
   const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
   if (!res.ok) {
@@ -17,15 +22,20 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
   return res.json();
 }
 
+export const uid = () => Math.random().toString(36).slice(2, 9);
+
 export const api = {
   async listCourses(kind?: Course["kind"]) {
-    // Educator gets their own courses or all courses depending on API design,
-    // actually backend `GET /admin/courses` returns all for admin, educator gets theirs.
-    return fetchApi("/admin/courses");
+    const [courses, trainings] = await Promise.all([
+      fetchApi("/admin/courses"),
+      fetchApi("/admin/trainings")
+    ]);
+    const mappedCourses = courses.map((c: any) => ({ ...c, kind: "course" }));
+    const mappedTrainings = trainings.map((t: any) => ({ ...t, kind: "training" }));
+    return [...mappedCourses, ...mappedTrainings];
   },
   async getCourse(id: string) {
-    // We don't have a specific GET /admin/courses/:id in the backend, but we have GET /courses/:id
-    return fetchApi(`/courses/${id}`);
+    return fetchApi(`/admin/courses/${id}`);
   },
   async saveCourse(input: any) {
     if (input.id) {
@@ -47,42 +57,53 @@ export const api = {
     return fetchApi(`/admin/courses/${id}`, { method: "DELETE" });
   },
   async listLearners(courseId?: string) {
-    // Not implemented in backend fully, but let's assume /admin/enrollments
-    return []; 
+    if (!courseId) return [];
+    const courses = await this.listCourses();
+    const course = courses.find((c: any) => c.id === courseId);
+    return course?.learners || [];
   },
-  async enrollmentCounts() {
-    return fetchApi("/admin/stats").then(s => ({ "all": s.totalEnrollments })).catch(() => ({}));
+  async getDashboard() {
+    return fetchApi("/admin/educator/dashboard");
   },
 
   async listBlogs() {
-    return fetchApi("/blogs");
+    return fetchApi("/admin/blogs");
   },
   async getBlog(id: string) {
-    return fetchApi(`/blogs/${id}`);
+    return fetchApi(`/admin/blogs/${id}`);
   },
   async saveBlog(input: any) {
     if (input.id) {
-      return fetchApi(`/blogs/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
+      return fetchApi(`/admin/blogs/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
     }
-    return fetchApi("/blogs", { method: "POST", body: JSON.stringify(input) });
+    return fetchApi("/admin/blogs", { method: "POST", body: JSON.stringify(input) });
   },
   async deleteBlog(id: string) {
-    return fetchApi(`/blogs/${id}`, { method: "DELETE" });
+    // not implemented backend route for DELETE /admin/blogs/:id
+    // But educator shouldn't delete easily anyway without route, let's leave as is
+    return fetchApi(`/admin/blogs/${id}`, { method: "DELETE" });
   },
 
   async listResources() {
-    return []; // Not implemented in backend yet
+    return fetchApi("/admin/resources");
   },
   async saveResource(input: any) {
-    return {};
+    if (input.id) {
+      return fetchApi(`/admin/resources/${input.id}`, { method: "PUT", body: JSON.stringify(input) });
+    }
+    return fetchApi("/admin/resources", { method: "POST", body: JSON.stringify(input) });
   },
-  async deleteResource(id: string) {},
+  async deleteResource(id: string) {
+    return fetchApi(`/admin/resources/${id}`, { method: "DELETE" });
+  },
 
-  async getProfile(): Promise<Profile> {
-    return { name: "Educator", email: "educator@enginow.com", notifyApprovals: true, notifyEnrollments: true, notifyWeeklySummary: true };
+  async getProfile(): Promise<any> {
+    const res = await fetchApi("/staff/me");
+    return res.staff;
   },
   async saveProfile(input: Partial<Profile>) {
-    return this.getProfile();
+    const res = await fetchApi("/staff/me", { method: "PATCH", body: JSON.stringify(input) });
+    return res.staff;
   },
 };
 

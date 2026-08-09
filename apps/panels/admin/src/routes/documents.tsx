@@ -25,7 +25,7 @@ import { EmptyState } from "@/components/panel/EmptyState";
 import { PageHeader } from "@/components/panel/PageHeader";
 import { RoleGuard } from "@/components/panel/RoleGuard";
 import { useSession } from "@/lib/session";
-import { listDocuments, generateDocument } from "@/mocks/api";
+import { listDocuments, generateDocument } from "@/lib/api";
 
 export const Route = createFileRoute("/documents")({
   head: () => ({

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, qk } from "@/lib/api";
-import type { Blog } from "@/lib/mock/db";
+import type { Blog } from "@/lib/api";
 
 const schema = z.object({
   title: z.string().min(4, "Give the post a title."),
@@ -39,22 +39,22 @@ export function BlogForm({ blog }: { blog?: Blog }) {
   });
 
   const save = useMutation({
-    mutationFn: async (vars: { values: FormValues; status: "Draft" | "Pending" }) => {
+    mutationFn: async (vars: { values: FormValues; status: "draft" | "pending_approval" }) => {
       const payload = {
         title: vars.values.title,
         excerpt: vars.values.excerpt,
         body: vars.values.body,
         status: vars.status,
         ...(vars.values.bannerUrl ? { bannerUrl: vars.values.bannerUrl } : {}),
-      };
+      } as any;
       if (blog) return api.updateBlog(blog.id, payload);
       return api.createBlog(payload);
     },
     onSuccess: (saved, vars) => {
       queryClient.invalidateQueries({ queryKey: qk.blogs });
-      queryClient.invalidateQueries({ queryKey: qk.blog(saved.id) });
-      toast.success(vars.status === "Draft" ? "Draft saved" : "Blog post sent for approval");
-      navigate({ to: "/blogs/$id", params: { id: saved.id } });
+      if (saved?.id) queryClient.invalidateQueries({ queryKey: qk.blog(saved.id) });
+      toast.success(vars.status === "draft" ? "Draft saved" : "Blog post sent for approval");
+      if (saved?.id) navigate({ to: "/blogs/$id", params: { id: saved.id } });
     },
     onError: () => toast.error("Couldn't save this post. Please try again."),
   });
@@ -132,7 +132,7 @@ export function BlogForm({ blog }: { blog?: Blog }) {
         <Button
           type="button"
           disabled={save.isPending}
-          onClick={form.handleSubmit((values) => save.mutate({ values, status: "Pending" }))}
+          onClick={form.handleSubmit((values) => save.mutate({ values, status: "pending_approval" }))}
         >
           Send for approval
         </Button>
@@ -140,7 +140,7 @@ export function BlogForm({ blog }: { blog?: Blog }) {
           type="button"
           variant="outline"
           disabled={save.isPending}
-          onClick={form.handleSubmit((values) => save.mutate({ values, status: "Draft" }))}
+          onClick={form.handleSubmit((values) => save.mutate({ values, status: "draft" }))}
         >
           Save draft
         </Button>

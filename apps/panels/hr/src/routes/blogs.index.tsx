@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/hr/PageHeader";
 import { StatusBadge } from "@/components/hr/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { api, qk } from "@/lib/api";
-import type { Blog } from "@/lib/mock/db";
+import type { Blog } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/blogs/")({
@@ -38,7 +38,7 @@ function BlogsPage() {
       render: (r) => (
         <div>
           <p className="font-medium">{r.title}</p>
-          {r.status === "Rejected" && r.rejectionReason && (
+          {r.status === "rejected" && r.rejectionReason && (
             <p className="mt-0.5 text-xs text-danger">Admin asked for changes: {r.rejectionReason}</p>
           )}
         </div>

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/educator/AppShell";
-import { RoleGuard } from "@/lib/role";
+import { RoleGuard, useSession } from "@/lib/role";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,17 +39,20 @@ function SettingsPage() {
   const [confirm, setConfirm] = useState("");
   const [pwError, setPwError] = useState<string | null>(null);
 
+  const { updateProfile } = useSession();
+
   useEffect(() => {
     if (profile.data) {
-      setName(profile.data.name);
-      setEmail(profile.data.email);
+      setName(profile.data.name || "");
+      setEmail(profile.data.email || "");
     }
   }, [profile.data]);
 
   const saveProfile = useMutation({
     mutationFn: () => api.saveProfile({ name: name.trim(), email: email.trim() }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["profile"] });
+      updateProfile(data.name, data.email);
       toast.success("Profile saved");
     },
   });

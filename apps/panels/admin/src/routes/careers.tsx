@@ -35,7 +35,7 @@ import {
   listCareers, saveCareer, deleteCareer,
   listCareerApplications, updateCareerApplicationStatus, listAssessments,
   type Application,
-} from "@/mocks/api";
+} from "@/lib/api";
 
 export const Route = createFileRoute("/careers")({
   head: () => ({ meta: [{ title: "Careers — Enginow Panel" }] }),

@@ -9,8 +9,7 @@ import { PageHeader } from "@/components/hr/PageHeader";
 import { StatusBadge } from "@/components/hr/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api, qk } from "@/lib/api";
-import { DOMAINS, type Listing, type ListingKind } from "@/lib/mock/db";
+import { api, qk, DOMAINS, type Listing, type ListingKind } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/careers/listings/")({
@@ -34,19 +33,14 @@ export const Route = createFileRoute("/careers/listings/")({
 
 function ListingsPage() {
   const navigate = useNavigate();
-  const [kind, setKind] = useState<ListingKind>("Job");
+  const [kind, setKind] = useState<ListingKind>("job");
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: qk.listings,
     queryFn: api.listings,
   });
-  const { data: applicants = [] } = useQuery({
-    queryKey: qk.applicants(),
-    queryFn: () => api.applicants(),
-  });
-
   const rows = listings.filter((l) => l.kind === kind);
-  const countFor = (id: string) => applicants.filter((a) => a.listingId === id).length;
+  const countFor = (id: string) => listings.find((l) => l.id === id)?.applicantsCount ?? 0;
 
   const columns: Column<Listing>[] = [
     {
@@ -57,7 +51,7 @@ function ListingsPage() {
         <div>
           <p className="font-medium">{r.title}</p>
           <p className="text-xs text-muted-foreground">
-            {r.location} · {r.employmentType}
+            {r.locationType} · {r.type}
           </p>
         </div>
       ),
@@ -67,14 +61,14 @@ function ListingsPage() {
     {
       key: "apps",
       header: "Applications",
-      sortValue: (r) => countFor(r.id),
-      render: (r) => countFor(r.id),
+      sortValue: (r) => r.applicantsCount ?? 0,
+      render: (r) => r.applicantsCount ?? 0,
     },
     {
       key: "close",
       header: "Close date",
-      sortValue: (r) => r.closeDate,
-      render: (r) => formatDate(r.closeDate),
+      sortValue: (r) => r.openUntil ?? "",
+      render: (r) => formatDate(r.openUntil ?? ""),
     },
   ];
 
@@ -97,8 +91,8 @@ function ListingsPage() {
       <div className="space-y-4 px-6 py-6">
         <Tabs value={kind} onValueChange={(v) => setKind(v as ListingKind)}>
           <TabsList>
-            <TabsTrigger value="Job">Jobs</TabsTrigger>
-            <TabsTrigger value="Internship">Internships</TabsTrigger>
+            <TabsTrigger value="job">Jobs</TabsTrigger>
+            <TabsTrigger value="internship">Internships</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -113,7 +107,7 @@ function ListingsPage() {
             {
               key: "status",
               label: "Statuses",
-              options: ["Pending", "Open", "Closed", "Expired"],
+              options: ["draft", "pending_approval", "open", "closed", "expired"],
               matches: (r, v) => r.status === v,
             },
             {
@@ -127,8 +121,8 @@ function ListingsPage() {
           emptyState={
             <EmptyState
               icon={Briefcase}
-              line={`No ${kind === "Job" ? "jobs" : "internships"} yet → Post your first ${
-                kind === "Job" ? "job" : "internship"
+              line={`No ${kind === "job" ? "jobs" : "internships"} yet → Post your first ${
+                kind === "job" ? "job" : "internship"
               }.`}
               actionLabel="Post new listing"
               onAction={() => navigate({ to: "/careers/listings/new" })}

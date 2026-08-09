@@ -17,8 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api, qk } from "@/lib/api";
-import { DOMAINS, type Assessment } from "@/lib/mock/db";
+import { api, qk, DOMAINS, type Assessment } from "@/lib/api";
 
 const schema = z.object({
   title: z.string().min(4, "Give the assessment a title."),
@@ -29,7 +28,7 @@ const schema = z.object({
 });
 
 type FormValues = z.input<typeof schema>;
-type Question = Assessment["questions"][number];
+type Question = any;
 
 export function AssessmentForm({ assessment }: { assessment?: Assessment }) {
   const navigate = useNavigate();
@@ -55,7 +54,7 @@ export function AssessmentForm({ assessment }: { assessment?: Assessment }) {
 
   const listingId = form.watch("listingId");
   const linkedListing = listings.find((l) => l.id === listingId);
-  const eligible = applicants.filter((a) => a.listingId === listingId && a.stage !== "Applied");
+  const eligible = applicants.filter((a) => a.careerId === listingId && a.stage !== "Applied");
 
   const save = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -72,9 +71,13 @@ export function AssessmentForm({ assessment }: { assessment?: Assessment }) {
     },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: qk.assessments });
-      queryClient.invalidateQueries({ queryKey: qk.assessment(saved.id) });
+      if (saved && (saved as any).id) {
+        queryClient.invalidateQueries({ queryKey: qk.assessment((saved as any).id) });
+        navigate({ to: "/assessments/$id", params: { id: (saved as any).id } });
+      } else {
+        navigate({ to: "/assessments" });
+      }
       toast.success(assessment ? "Assessment saved" : "Assessment created");
-      navigate({ to: "/assessments/$id", params: { id: saved.id } });
     },
     onError: () => toast.error("Couldn't save this assessment. Please try again."),
   });
@@ -216,7 +219,7 @@ export function AssessmentForm({ assessment }: { assessment?: Assessment }) {
                 </Button>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {question.options.map((option, oi) => (
+                {(question.options as string[]).map((option: string, oi: number) => (
                   <div key={oi} className="flex items-center gap-2">
                     <input
                       type="radio"
@@ -238,7 +241,7 @@ export function AssessmentForm({ assessment }: { assessment?: Assessment }) {
                             i === qi
                               ? {
                                   ...q,
-                                  options: q.options.map((o, j) => (j === oi ? e.target.value : o)),
+                                  options: (q.options as string[]).map((o: string, j: number) => (j === oi ? e.target.value : o)),
                                 }
                               : q,
                           ),

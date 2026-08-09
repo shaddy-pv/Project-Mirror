@@ -27,7 +27,7 @@ import { EmptyState } from "@/components/panel/EmptyState";
 import { PageHeader } from "@/components/panel/PageHeader";
 import { RoleGuard } from "@/components/panel/RoleGuard";
 import { StatusBadge } from "@/components/panel/StatusBadge";
-import { listUsers, regenerateReferralCode, setUserActive } from "@/mocks/api";
+import { listUsers, regenerateReferralCode, setUserActive } from "@/lib/api";
 import type { PanelUser } from "@/lib/types";
 
 export const Route = createFileRoute("/users")({

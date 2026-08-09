@@ -6,21 +6,29 @@ type SalesUiState = {
   from?: string | undefined;
   to?: string | undefined;
   course: string | null;
-  college: string | null;
+  year: string | null;
+  category: string | null;
+  type: string | null;
   setPreset: (preset: RangePreset) => void;
   setCustom: (from: string, to: string) => void;
   toggleCourse: (course: string) => void;
-  toggleCollege: (college: string) => void;
+  toggleYear: (year: string) => void;
+  toggleCategory: (category: string) => void;
+  toggleType: (type: string) => void;
   clearFilters: () => void;
 };
 
 export const useSalesUi = create<SalesUiState>((set) => ({
   preset: "30d",
   course: null,
-  college: null,
+  year: null,
+  category: null,
+  type: null,
   setPreset: (preset) => set({ preset }),
   setCustom: (from, to) => set({ preset: "custom", from, to }),
   toggleCourse: (course) => set((s) => ({ course: s.course === course ? null : course })),
-  toggleCollege: (college) => set((s) => ({ college: s.college === college ? null : college })),
-  clearFilters: () => set({ course: null, college: null }),
+  toggleYear: (year) => set((s) => ({ year: s.year === year ? null : year })),
+  toggleCategory: (category) => set((s) => ({ category: s.category === category ? null : category })),
+  toggleType: (type) => set((s) => ({ type: s.type === type ? null : type })),
+  clearFilters: () => set({ course: null, year: null, category: null, type: null }),
 }));

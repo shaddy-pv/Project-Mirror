@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { api, qk } from "@/lib/api";
-import { DOMAINS, type Season, type SeasonName } from "@/lib/mock/db";
+import { api, qk, DOMAINS, type Season, type SeasonName } from "@/lib/api";
 
 export const Route = createFileRoute("/careers/seasons/")({
   head: () => ({
@@ -41,10 +40,6 @@ export const Route = createFileRoute("/careers/seasons/")({
 
 function SeasonsPage() {
   const { data: seasons = [], isLoading } = useQuery({ queryKey: qk.seasons, queryFn: api.seasons });
-  const { data: applicants = [] } = useQuery({
-    queryKey: qk.applicants(),
-    queryFn: () => api.applicants(),
-  });
 
   return (
     <>
@@ -66,7 +61,7 @@ function SeasonsPage() {
               <SeasonCard
                 key={season.name}
                 season={season}
-                applicantCount={applicants.filter((a) => a.season === season.name).length}
+                applicantCount={0}
               />
             ))}
       </div>
@@ -80,7 +75,7 @@ function SeasonCard({ season, applicantCount }: { season: Season; applicantCount
   const [domainToAdd, setDomainToAdd] = useState("");
 
   const update = useMutation({
-    mutationFn: (patch: Partial<Season>) => api.updateSeason(season.name as SeasonName, patch),
+    mutationFn: (patch: Partial<Season>) => api.updateSeason(season.id, patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.seasons }),
     onError: () => toast.error("Couldn't save that change. Please try again."),
   });
@@ -175,12 +170,12 @@ function SeasonCard({ season, applicantCount }: { season: Season; applicantCount
 
       <div className="mt-4 grid gap-3 rounded-lg bg-muted p-3 text-xs text-muted-foreground sm:grid-cols-2">
         <div>
-          <p className="font-medium text-foreground/70">Duration options (Admin-managed)</p>
-          <p>{season.durationOptions.join(" · ")}</p>
+          <p className="font-medium text-foreground/70">Starts</p>
+          <p>{season.startsText}</p>
         </div>
         <div>
-          <p className="font-medium text-foreground/70">Showcase page (Admin-managed)</p>
-          <p>{season.showcaseNote}</p>
+          <p className="font-medium text-foreground/70">Domains</p>
+          <p>{season.domains.join(" · ") || "None set"}</p>
         </div>
       </div>
 

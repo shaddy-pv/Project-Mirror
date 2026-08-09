@@ -27,6 +27,7 @@
     "@types/redis": "^4.0.10",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "dayjs": "^1.11.21",
     "dotenv": "^17.4.2",
     "enginow": "file:../..",
     "express": "^5.2.1",

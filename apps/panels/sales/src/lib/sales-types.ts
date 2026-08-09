@@ -34,22 +34,41 @@ export function resolveRange(sel: RangeSelection) {
 
 export type DashboardFilters = {
   course?: string | null;
-  college?: string | null;
+  year?: string | null;
+  category?: string | null;
+  type?: string | null;
 };
 
 export type DashboardData = {
   rangeLabel: string;
   kpis: {
-    enrollments: number;
-    learners: number;
-    topCourse: { name: string; count: number } | null;
-    growthPct: number | null;
+    totalEnrollments: number;
+    enrollmentGrowth: number;
+    activeLearners: number;
+    premiumEnrollments: number;
+    totalLeads: number;
+    conversionRate: number;
   };
-  topCourses: Array<{ name: string; count: number }>;
-  trend: Array<{ label: string; count: number }>;
-  byYear: Array<{ label: string; count: number }>;
-  byCollege: Array<{ label: string; count: number }>;
-  referrers: Array<{ name: string; code: string; signups: number; enrollments: number }>;
+  charts: {
+    enrollmentTrend: Array<{ date: string; count: number }>;
+    freeVsPremium: Array<{ name: string; value: number }>;
+    studentYearDistribution: Array<{ year: string; count: number }>;
+    coursePerformance: Array<{ id: string; title: string; category: string; type: string; enrollments: number; revenue: number }>;
+    categoryPerformance: Array<{ category: string; enrollments: number }>;
+    trainingPerformance: Array<{ id: string; title: string; registrations: number; growth: number; status: string; popularity: string }>;
+    referralAnalytics: {
+      totalReferralEnrollments: number;
+      referralConversions: number;
+      topReferralSource: string;
+      referralContribution: number;
+    };
+  };
+  recentLeads: Array<any>;
+  insights: {
+    topCourse: string | null;
+    topYear: string | null;
+    enrollmentTrend: string | null;
+  };
 };
 
 export type SalesProfile = {

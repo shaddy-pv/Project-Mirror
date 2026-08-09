@@ -63,8 +63,8 @@ function BlogDetailPage() {
         <div className="flex items-center gap-3">
           <StatusBadge status={blog.status} />
         </div>
-        {blog.status === "Pending" && <PendingApprovalBanner what="blog post" />}
-        {blog.status === "Rejected" && blog.rejectionReason && (
+        {blog.status === "pending_approval" && <PendingApprovalBanner what="blog post" />}
+        {blog.status === "rejected" && blog.rejectionReason && (
           <RejectedBanner what="blog post" reason={blog.rejectionReason} />
         )}
         <BlogForm blog={blog} />

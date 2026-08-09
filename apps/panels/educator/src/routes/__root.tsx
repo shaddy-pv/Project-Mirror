@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { EducatorLoginPage } from "@/components/educator/EducatorLoginPage";
@@ -125,10 +125,17 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const isAuthenticated = useSession((s) => s.isAuthenticated);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isAuthToUse = mounted ? isAuthenticated : false;
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isAuthenticated ? <Outlet /> : <EducatorLoginPage />}
+      {isAuthToUse ? <Outlet /> : <EducatorLoginPage />}
       <Toaster position="top-right" />
     </QueryClientProvider>
   );

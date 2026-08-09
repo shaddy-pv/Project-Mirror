@@ -41,13 +41,11 @@ export const Route = createFileRoute("/courses/")({
 function CoursesPage() {
   const { tab } = Route.useSearch();
   const navigate = useNavigate();
-  const kind: Course["kind"] = tab === "training" ? "training" : "course";
-  const noun = kind === "training" ? "training program" : "course";
+  const kind = tab === "training" ? "training" : "course";
+  const courses = useQuery({ queryKey: ["courses"], queryFn: () => api.listCourses() });
+  const rows = (courses.data ?? []).filter((c: any) => c.kind === kind);
 
-  const courses = useQuery({ queryKey: ["courses", kind], queryFn: () => api.listCourses(kind) });
-  const counts = useQuery({ queryKey: ["counts"], queryFn: () => api.enrollmentCounts() });
-
-  const columns: Array<Column<Course>> = [
+  const courseColumns: Array<Column<Course>> = [
     {
       key: "title",
       header: "Title",
@@ -59,26 +57,59 @@ function CoursesPage() {
     {
       key: "type",
       header: "Type",
-      render: (r) => <span className="capitalize">{r.pricing}</span>,
+      render: (r: any) => <span className="capitalize">{r.isPremium ? "Premium" : "Free"}</span>,
     },
     {
       key: "badges",
       header: "Badges",
-      render: (r) =>
-        r.badges.length === 0 ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
-          <span className="capitalize">{r.badges.join(", ")}</span>
-        ),
+      render: (r: any) => {
+        const b = [];
+        if (r.isNew) b.push("New");
+        if (r.isPopular) b.push("Popular");
+        return b.length === 0 ? <span className="text-muted-foreground">—</span> : <span className="capitalize">{b.join(", ")}</span>;
+      }
     },
-    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+    { key: "status", header: "Status", render: (r: any) => <StatusBadge status={r.status} /> },
     {
       key: "enrollments",
       header: "Enrollments",
       sortable: true,
-      sortValue: (r) => counts.data?.[r.id] ?? 0,
+      sortValue: (r: any) => r.enrollments ?? 0,
       className: "text-right",
-      render: (r) => counts.data?.[r.id] ?? 0,
+      render: (r: any) => r.enrollments ?? 0,
+    },
+  ];
+
+  const trainingColumns: Array<Column<Course>> = [
+    {
+      key: "title",
+      header: "Program Name",
+      sortable: true,
+      sortValue: (r) => r.title,
+      render: (r) => (
+        <div>
+          <p className="font-medium">{r.title}</p>
+          <p className="text-xs text-muted-foreground truncate max-w-[200px]" title={r.description}>{r.description}</p>
+        </div>
+      ),
+    },
+    { key: "duration", header: "Duration", render: (r) => r.duration || "N/A" },
+    { key: "status", header: "Status", render: (r: any) => <StatusBadge status={r.status} /> },
+    {
+      key: "created",
+      header: "Created",
+      render: (r) => {
+        if (!r.createdAt) return "N/A";
+        return new Date(r.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+      },
+    },
+    {
+      key: "enrollments",
+      header: "Registrations",
+      sortable: true,
+      sortValue: (r: any) => r.enrollments ?? 0,
+      className: "text-right",
+      render: (r: any) => r.enrollments ?? 0,
     },
   ];
 
@@ -87,16 +118,17 @@ function CoursesPage() {
       title="Courses & Training"
       description="Only your own courses appear here."
       help={{
-        title: "Courses & Training",
+        title: "Courses",
         lines: [
-          "Courses and training programs work the same way — training programs just run as guided cohorts.",
           "Every change you submit goes to Admin for approval before learners see it.",
         ],
       }}
       actions={
-        <Button onClick={() => navigate({ to: "/courses/new", search: { kind } })}>
-          <Plus className="mr-1 size-4" /> Create {noun}
-        </Button>
+        kind === "course" && (
+          <Button onClick={() => navigate({ to: "/courses/new", search: { kind: "course" } })}>
+            <Plus className="mr-1 size-4" /> Create course
+          </Button>
+        )
       }
     >
       <div className="space-y-5">
@@ -108,8 +140,8 @@ function CoursesPage() {
         </Tabs>
 
         <DataTable
-          rows={courses.data ?? []}
-          columns={columns}
+          rows={rows}
+          columns={kind === "course" ? courseColumns : trainingColumns}
           rowKey={(r) => r.id}
           searchPlaceholder="Search by title"
           searchValue={(r) => r.title}
@@ -140,9 +172,9 @@ function CoursesPage() {
           emptyState={
             <EmptyState
               icon={BookOpen}
-              line={`No ${noun}s yet → Create your first ${noun}.`}
-              actionLabel={`Create ${noun}`}
-              onAction={() => navigate({ to: "/courses/new", search: { kind } })}
+              line={kind === "course" ? `No courses yet → Create your first course.` : `No training programs found.`}
+              actionLabel={kind === "course" ? `Create course` : undefined}
+              onAction={kind === "course" ? () => navigate({ to: "/courses/new", search: { kind: "course" } }) : undefined}
             />
           }
         />

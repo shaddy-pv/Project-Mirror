@@ -9,8 +9,10 @@ import {
   Newspaper,
   Settings,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { useSession } from "@/lib/store";
+import { api, qk } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -25,7 +27,10 @@ const NAV = [
 
 export function HrSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { name, email, logout } = useSession();
+  const { logout } = useSession();
+  const { data: profile } = useQuery({ queryKey: qk.profile, queryFn: api.profile });
+  const displayName = profile?.name ?? "HR Staff";
+  const displayEmail = profile?.email ?? "";
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
@@ -70,8 +75,8 @@ export function HrSidebar() {
 
       <div className="border-t border-ink-hover px-5 py-4 text-xs text-ink-muted flex items-center justify-between">
         <div>
-          <p className="font-semibold text-ink-foreground">{name}</p>
-          <p className="text-[11px] text-ink-muted">{email}</p>
+          <p className="font-semibold text-ink-foreground">{displayName}</p>
+          <p className="text-[11px] text-ink-muted">{displayEmail}</p>
         </div>
         <button
           onClick={logout}

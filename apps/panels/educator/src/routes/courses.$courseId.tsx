@@ -109,16 +109,18 @@ function CourseDetail() {
           <Button variant="ghost" onClick={() => navigate({ to: "/courses" })}>
             <ArrowLeft className="mr-1 size-4" /> All courses
           </Button>
-          {enrolled > 0 ? (
-            c.status !== "archived" && (
-              <Button variant="outline" onClick={() => setConfirm("archive")}>
-                Archive {noun}
+          {c.kind === "course" && (
+            enrolled > 0 ? (
+              c.status !== "archived" && (
+                <Button variant="outline" onClick={() => setConfirm("archive")}>
+                  Archive {noun}
+                </Button>
+              )
+            ) : (
+              <Button variant="outline" onClick={() => setConfirm("delete")}>
+                Delete {noun}
               </Button>
             )
-          ) : (
-            <Button variant="outline" onClick={() => setConfirm("delete")}>
-              Delete {noun}
-            </Button>
           )}
         </>
       }
@@ -130,7 +132,7 @@ function CourseDetail() {
         <Tabs defaultValue="overview">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="edit">Edit {noun}</TabsTrigger>
+            {c.kind === "course" && <TabsTrigger value="edit">Edit {noun}</TabsTrigger>}
             <TabsTrigger value="learners">Enrolled learners</TabsTrigger>
           </TabsList>
 
@@ -156,7 +158,7 @@ function CourseDetail() {
               </CardHeader>
               <CardContent>
                 <ol className="list-decimal space-y-1 pl-5 text-sm">
-                  {c.modules.map((m) => (
+                  {(c.modules || []).map((m: any) => (
                     <li key={m.id}>{m.title}</li>
                   ))}
                 </ol>
@@ -168,10 +170,10 @@ function CourseDetail() {
                 <CardTitle className="text-base">Videos</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                {c.videos.length === 0 ? (
+                {(c.videos || []).length === 0 ? (
                   <p className="text-muted-foreground">No videos linked yet.</p>
                 ) : (
-                  c.videos.map((v) => (
+                  (c.videos || []).map((v: any) => (
                     <div key={v.id}>
                       <a href={v.url} className="text-primary underline" target="_blank" rel="noreferrer">
                         {v.url}
@@ -184,9 +186,11 @@ function CourseDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="edit" className="mt-5">
-            <CourseForm kind={c.kind} course={c} />
-          </TabsContent>
+          {c.kind === "course" && (
+            <TabsContent value="edit" className="mt-5">
+              <CourseForm kind={c.kind} course={c} />
+            </TabsContent>
+          )}
 
           <TabsContent value="learners" className="mt-5 max-w-3xl space-y-4">
             <p className="text-sm text-muted-foreground">

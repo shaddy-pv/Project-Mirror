@@ -19,7 +19,7 @@ import {
   listAssessments, saveAssessment, deleteAssessment, getAssessmentForEdit, getAssessmentResults,
   listInternships, listCareers,
   type Assessment, type AssessmentModule, type AssessmentQuestion,
-} from "@/mocks/api";
+} from "@/lib/api";
 
 export const Route = createFileRoute("/assessments")({
   head: () => ({ meta: [{ title: "Assessments — Enginow Panel" }] }),

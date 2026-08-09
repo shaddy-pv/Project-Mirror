@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/panel/PageHeader";
 import { RoleGuard } from "@/components/panel/RoleGuard";
 import { useSession } from "@/lib/session";
 import { type Resource } from "@/lib/types";
-import { listResources, saveResource, deleteResource } from "@/mocks/api";
+import { listResources, saveResource, deleteResource } from "@/lib/api";
 
 export const Route = createFileRoute("/resources")({
   head: () => ({

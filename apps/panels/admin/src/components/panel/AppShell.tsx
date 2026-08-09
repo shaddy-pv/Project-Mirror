@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { canAccess, useSession, type ModuleKey } from "@/lib/session";
 import { ROLE_LABELS, type Role } from "@/lib/types";
-import { listApprovals } from "@/mocks/api";
+import { listApprovals } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV: { to: string; label: string; icon: any; module: ModuleKey }[] = [

@@ -3,21 +3,21 @@ import { cn } from "@/lib/utils";
 type Tone = "gray" | "amber" | "green" | "red";
 
 const TONES: Record<string, Tone> = {
-  Draft: "gray",
-  Pending: "amber",
-  "Pending approval": "amber",
-  Open: "green",
-  Live: "green",
-  Published: "green",
-  Selected: "green",
-  Responded: "green",
-  Shortlisted: "amber",
-  OA: "amber",
-  Applied: "gray",
-  New: "amber",
-  Closed: "red",
-  Expired: "red",
-  Rejected: "red",
+  draft: "gray",
+  pending: "amber",
+  pending_approval: "amber",
+  open: "green",
+  live: "green",
+  published: "green",
+  selected: "green",
+  responded: "green",
+  shortlisted: "amber",
+  oa: "amber",
+  applied: "gray",
+  new: "amber",
+  closed: "red",
+  expired: "red",
+  rejected: "red",
 };
 
 const toneClass: Record<Tone, string> = {
@@ -34,8 +34,13 @@ export function StatusBadge({
   status: string;
   className?: string;
 }) {
-  const tone = TONES[status] ?? "gray";
-  const label = status === "Pending" ? "Pending approval" : status;
+  const normStatus = (status || "").toLowerCase();
+  const tone = TONES[normStatus] ?? "gray";
+  
+  let label = status || "";
+  if (normStatus === "pending_approval") label = "Pending approval";
+  else if (normStatus) label = normStatus.charAt(0).toUpperCase() + normStatus.slice(1);
+
   return (
     <span
       className={cn(

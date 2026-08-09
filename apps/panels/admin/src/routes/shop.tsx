@@ -34,7 +34,7 @@ import {
   deleteProduct,
   listOrders,
   updateOrderTracking,
-} from "@/mocks/api";
+} from "@/lib/api";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({ meta: [{ title: "Shop & Orders — Enginow Panel" }] }),

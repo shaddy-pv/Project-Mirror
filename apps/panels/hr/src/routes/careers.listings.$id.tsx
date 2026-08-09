@@ -17,8 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api, qk } from "@/lib/api";
-import type { Applicant } from "@/lib/mock/db";
+import { api, qk, type Applicant } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/careers/listings/$id")({
@@ -58,18 +57,18 @@ function ListingDetailPage() {
   });
 
   const setStatus = useMutation({
-    mutationFn: (open: boolean) => (open ? api.reopenListing(id) : api.closeListing(id)),
-    onSuccess: (saved) => {
+    mutationFn: (open: boolean) => (open ? api.reopenListing(id, listing?.kind) : api.closeListing(id, listing?.kind)),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.listing(id) });
       queryClient.invalidateQueries({ queryKey: qk.listings });
       setConfirmClose(false);
-      toast.success(saved.status === "Closed" ? "Listing closed" : "Listing reopened");
+      toast.success("Listing updated");
     },
     onError: () => toast.error("Couldn't change this listing. Please try again."),
   });
 
   const remove = useMutation({
-    mutationFn: () => api.removeListing(id),
+    mutationFn: () => api.removeListing(id, listing?.kind),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.listings });
       setConfirmRemove(false);
@@ -98,7 +97,7 @@ function ListingDetailPage() {
       header: "Stage",
       render: (r) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <StageDropdown applicantId={r.id} stage={r.stage} />
+          <StageDropdown applicantId={r.id} stage={r.stage} kind={r.kind} />
         </div>
       ),
     },
@@ -121,13 +120,13 @@ function ListingDetailPage() {
     );
   }
 
-  const canApply = listing.status === "Open";
+  const canApply = listing.isOpen;
 
   return (
     <>
       <PageHeader
         title={listing.title}
-        subtitle={`${listing.kind} · ${listing.domain} · closes ${formatDate(listing.closeDate)}`}
+        subtitle={`${listing.kind} · ${listing.domain} · closes ${formatDate(listing.openUntil ?? "")}`}
         help={[
           "The Applicants tab lists everyone who applied. Use the stage dropdown on each row to move them along.",
           "Closing a listing stops new applications but keeps every applicant you already have.",
@@ -150,7 +149,7 @@ function ListingDetailPage() {
               <Switch
                 id="applications-open"
                 checked={canApply}
-                disabled={listing.status === "Pending" || listing.status === "Expired"}
+                disabled={listing.status === "pending_approval" || listing.status === "expired"}
                 onCheckedChange={(checked) => {
                   if (checked) setStatus.mutate(true);
                   else setConfirmClose(true);
@@ -166,8 +165,8 @@ function ListingDetailPage() {
           </div>
         </div>
 
-        {listing.status === "Pending" && <PendingApprovalBanner what="listing" />}
-        {listing.status === "Expired" && (
+        {(listing.status === "pending_approval") && <PendingApprovalBanner what="listing" />}
+        {listing.status === "expired" && (
           <div className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-foreground/80">
             The last date to apply has passed, so this listing is Expired. Edit the date and save to
             accept applications again.

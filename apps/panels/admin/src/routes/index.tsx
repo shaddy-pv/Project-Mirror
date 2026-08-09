@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/panel/PageHeader";
 import { CodeChip } from "@/components/panel/CodeChip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/session";
-import { getDashboard } from "@/mocks/api";
+import { getDashboard } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({

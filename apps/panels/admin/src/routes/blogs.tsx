@@ -24,7 +24,7 @@ import { ImageUploader } from "@/components/panel/ImageUploader";
 import { RichTextEditor } from "@/components/panel/RichTextEditor";
 import { canApprove, useSession } from "@/lib/session";
 import { ROLE_LABELS, type Blog } from "@/lib/types";
-import { listBlogs, saveBlog, setBlogStatus } from "@/mocks/api";
+import { listBlogs, saveBlog, setBlogStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/blogs")({
   head: () => ({

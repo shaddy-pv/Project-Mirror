@@ -44,7 +44,7 @@ export function ApplicantDrawer({
             <div className="space-y-6 px-4 pb-8">
               <div className="flex flex-wrap items-center gap-3">
                 <StatusBadge status={applicant.stage} />
-                <StageDropdown applicantId={applicant.id} stage={applicant.stage} />
+                <StageDropdown applicantId={applicant.id} stage={applicant.stage} kind={applicant.kind} />
               </div>
 
               <div className="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-2">
@@ -64,21 +64,26 @@ export function ApplicantDrawer({
                 )}
                 <div>
                   <p className="text-xs text-muted-foreground">Resume</p>
-                  <a
-                    href={applicant.resumeUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-brand underline underline-offset-4"
-                  >
-                    <FileText className="size-3.5" /> Open resume
-                  </a>
+                  {applicant.resumeUrl ? (
+                    <a
+                      href={applicant.resumeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-sm text-brand underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                      aria-label="Open applicant's resume in a new tab"
+                    >
+                      <FileText className="size-3.5" aria-hidden="true" /> Open resume
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Not provided</span>
+                  )}
                 </div>
               </div>
 
               <section>
                 <h3 className="text-sm font-semibold">Their answers</h3>
                 <div className="mt-2 space-y-3">
-                  {applicant.answers.map((a) => (
+                  {(applicant.answers ?? []).map((a) => (
                     <div key={a.question} className="rounded-xl border bg-card p-3 text-sm">
                       <p className="text-xs text-muted-foreground">{a.question}</p>
                       <p className="mt-1">{a.answer}</p>
@@ -90,7 +95,7 @@ export function ApplicantDrawer({
               <section>
                 <h3 className="text-sm font-semibold">Stage history</h3>
                 <ol className="mt-2 space-y-2 border-l pl-4 text-sm">
-                  {applicant.history.map((h, i) => (
+                  {(applicant.history ?? []).map((h, i) => (
                     <li key={`${h.stage}-${i}`} className="relative">
                       <span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-brand" />
                       <p className="font-medium">{h.stage}</p>

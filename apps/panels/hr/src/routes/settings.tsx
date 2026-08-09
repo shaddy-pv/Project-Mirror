@@ -62,7 +62,7 @@ function SettingsPage() {
   });
 
   const toggleNotification = useMutation({
-    mutationFn: (patch: Record<string, boolean>) => api.updateProfile(patch),
+    mutationFn: (patch: Record<string, boolean>) => api.updateProfile({ settings: { ...(profile?.settings || {}), ...patch } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.profile });
       toast.success("Notification preference saved");
@@ -142,7 +142,7 @@ function SettingsPage() {
               <div key={item.key} className="flex items-center gap-3">
                 <Switch
                   id={item.key}
-                  checked={Boolean(profile?.[item.key as keyof typeof profile])}
+                  checked={Boolean(profile?.settings?.[item.key as keyof typeof profile.settings])}
                   onCheckedChange={(checked) => toggleNotification.mutate({ [item.key]: checked })}
                 />
                 <Label htmlFor={item.key} className="text-sm font-normal">

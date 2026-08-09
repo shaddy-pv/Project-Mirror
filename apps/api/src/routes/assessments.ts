@@ -37,7 +37,9 @@ function validateAssessment(body: any): string | null {
 // @ts-ignore
 router.get("/", requireStaffAuth, async (req: AuthenticatedStaffRequest, res) => {
   try {
-    const assessments = await getDb().collection("assessments").find({}).sort({ createdAt: -1 }).toArray();
+    const role = req.staff?.role;
+    const filter = role === "hr" ? { createdBy: req.staff!.staffId } : {};
+    const assessments = await getDb().collection("assessments").find(filter).sort({ createdAt: -1 }).toArray();
     res.json(assessments.map(a => ({
       ...a,
       id: a._id.toString(),
@@ -60,8 +62,12 @@ router.get("/:id/edit", requireStaffAuth, async (req: AuthenticatedStaffRequest,
     if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
       return res.status(403).json({ error: "Unauthorized" });
     }
-    const assessment = await getDb().collection("assessments").findOne({ _id: new ObjectId(req.params.id as string) });
-    if (!assessment) return res.status(404).json({ error: "Assessment not found" });
+    const filter: any = { _id: new ObjectId(req.params.id as string) };
+    if (req.staff?.role === "hr") {
+      filter.createdBy = req.staff.staffId;
+    }
+    const assessment = await getDb().collection("assessments").findOne(filter);
+    if (!assessment) return res.status(404).json({ error: "Assessment not found or access denied" });
     res.json({ ...assessment, id: assessment._id.toString(), _id: undefined });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -101,8 +107,16 @@ router.put("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, res)
     const err = validateAssessment(req.body);
     if (err) return res.status(400).json({ error: err });
 
+    const filter: any = { _id: new ObjectId(req.params.id as string) };
+    if (req.staff?.role === "hr") {
+      filter.createdBy = req.staff.staffId;
+    }
+
+    const existing = await getDb().collection("assessments").findOne(filter);
+    if (!existing) return res.status(404).json({ error: "Assessment not found or access denied" });
+
     await getDb().collection("assessments").updateOne(
-      { _id: new ObjectId(req.params.id as string) },
+      filter,
       { $set: { ...req.body, updatedAt: new Date() } }
     );
     res.json({ success: true });
@@ -118,7 +132,14 @@ router.delete("/:id", requireStaffAuth, async (req: AuthenticatedStaffRequest, r
     if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
       return res.status(403).json({ error: "Unauthorized" });
     }
-    await getDb().collection("assessments").deleteOne({ _id: new ObjectId(req.params.id as string) });
+    const filter: any = { _id: new ObjectId(req.params.id as string) };
+    if (req.staff?.role === "hr") {
+      filter.createdBy = req.staff.staffId;
+    }
+    const existing = await getDb().collection("assessments").findOne(filter);
+    if (!existing) return res.status(404).json({ error: "Assessment not found or access denied" });
+
+    await getDb().collection("assessments").deleteOne(filter);
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -132,6 +153,13 @@ router.get("/:id/results", requireStaffAuth, async (req: AuthenticatedStaffReque
     if (req.staff?.role !== "admin" && req.staff?.role !== "hr") {
       return res.status(403).json({ error: "Unauthorized" });
     }
+    const filter: any = { _id: new ObjectId(req.params.id as string) };
+    if (req.staff?.role === "hr") {
+      filter.createdBy = req.staff.staffId;
+    }
+    const existing = await getDb().collection("assessments").findOne(filter);
+    if (!existing) return res.status(404).json({ error: "Assessment not found or access denied" });
+
     const results = await getDb().collection("assessment_sessions")
       .find({ assessmentId: new ObjectId(req.params.id as string) })
       .sort({ completedAt: -1 })
@@ -345,8 +373,12 @@ router.get("/:id/results/:userId", requireStaffAuth, async (req: AuthenticatedSt
     const db = getDb();
     
     // Fetch the assessment (to get correct answers and questions)
-    const assessment = await db.collection("assessments").findOne({ _id: new ObjectId(id as string) });
-    if (!assessment) return res.status(404).json({ error: "Assessment not found" });
+    const filter: any = { _id: new ObjectId(id as string) };
+    if (req.staff?.role === "hr") {
+      filter.createdBy = req.staff!.staffId;
+    }
+    const assessment = await db.collection("assessments").findOne(filter);
+    if (!assessment) return res.status(404).json({ error: "Assessment not found or access denied" });
 
     // Fetch the session
     const session = await db.collection("assessment_sessions").findOne({ assessmentId: new ObjectId(id as string), userId });

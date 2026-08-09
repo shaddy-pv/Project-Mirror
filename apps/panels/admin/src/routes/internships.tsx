@@ -36,7 +36,7 @@ import {
   listInternshipApplications, updateInternshipApplicationStatus,
   issueCertificate, getIssuedCertificates, listAssessments,
   type Application,
-} from "@/mocks/api";
+} from "@/lib/api";
 
 export const Route = createFileRoute("/internships")({
   head: () => ({ meta: [{ title: "Internships — Enginow Panel" }] }),
@@ -155,12 +155,15 @@ function CertificatePanel({ applicationId }: { applicationId: string }) {
                   )}
                 </div>
               </div>
-              {issued ? (
-                <a href={`http://localhost:3000/certificate/${cert.certificateId}`} target="_blank" rel="noopener noreferrer"
+              {issued ? (() => {
+                const webUrl = import.meta.env.VITE_MAIN_WEB_URL || "http://localhost:3000";
+                return (
+                <a href={`${webUrl}/certificate/${cert.certificateId}`} target="_blank" rel="noopener noreferrer"
                   className="shrink-0 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50">
                   <ExternalLink className="h-3 w-3" /> View
                 </a>
-              ) : drafting === value ? (
+                );
+              })() : drafting === value ? (
                 <button onClick={() => { setDrafting(null); setFileBase64(""); }}
                   className="shrink-0 text-[12px] text-muted-foreground hover:text-foreground font-medium">Cancel</button>
               ) : (

@@ -1,7 +1,7 @@
 import type { Blog, Course, PanelUser, Internship, Career, Product, Order } from "@/lib/types";
 import { getAuthToken } from "@/lib/session";
 
-const API_URL = "http://127.0.0.1:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
@@ -58,8 +58,8 @@ export async function regenerateReferralCode(id: string) {
 
 export async function listCourses(): Promise<Course[]> {
   const [courses, trainings] = await Promise.all([
-    fetchApi("/admin/courses").catch(() => []),
-    fetchApi("/admin/trainings").catch(() => []),
+    fetchApi("/admin/courses"),
+    fetchApi("/admin/trainings"),
   ]);
 
   const mappedCourses: Course[] = courses.map((c: any) => ({
@@ -132,7 +132,7 @@ export async function setCourseStatus(id: string, status: Course["status"], reas
 // ─── Blogs ────────────────────────────────────────────────────────────────────
 
 export async function listBlogs(): Promise<Blog[]> {
-  const data = await fetchApi("/admin/blogs").catch(() => []);
+  const data = await fetchApi("/admin/blogs");
   return data.map((b: any) => ({
     id: b._id || b.id,
     title: b.title || "",
@@ -170,7 +170,7 @@ export async function setBlogStatus(id: string, status: Blog["status"], reason?:
 // ─── Resources ────────────────────────────────────────────────────────────────
 
 export async function listResources(): Promise<any[]> {
-  const data = await fetchApi("/resources").catch(() => []);
+  const data = await fetchApi("/resources");
   return data.map((r: any) => ({
     id: r._id || r.id,
     title: r.title || "",
@@ -199,7 +199,7 @@ export async function deleteResource(id: string) {
 // ─── Documents ────────────────────────────────────────────────────────────────
 
 export async function listDocuments(): Promise<any[]> {
-  return fetchApi("/admin/documents").catch(() => []);
+  return fetchApi("/admin/documents");
 }
 
 export async function generateDocument(input: any): Promise<any> {
@@ -209,51 +209,8 @@ export async function generateDocument(input: any): Promise<any> {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export async function getDashboard() {
-  const [stats, users, courses, trainings, internships, careers] = await Promise.all([
-    fetchApi("/admin/stats").catch(() => ({ totalUsers: 0, totalCourses: 0, totalEnrollments: 0 })),
-    fetchApi("/admin/users").catch(() => []),
-    fetchApi("/admin/courses").catch(() => []),
-    fetchApi("/admin/trainings").catch(() => []),
-    fetchApi("/admin/internships").catch(() => []),
-    fetchApi("/admin/careers").catch(() => []),
-  ]);
-
-  const topCourses = [...courses, ...trainings].map((c: any) => ({
-    title: c.title || "Course",
-    enrollments: c.enrollments || 1,
-  }));
-
-  const leaderboard = users
-    .filter((u: any) => u.referralCode)
-    .map((u: any) => ({
-      name: u.fullName || u.email?.split("@")[0] || "Learner",
-      code: u.referralCode,
-      referrals: u.referralUsageCount || 0,
-    }))
-    .sort((a: any, b: any) => b.referrals - a.referrals)
-    .slice(0, 10);
-
-  return {
-    totalUsers: stats.totalUsers || users.length || 0,
-    newSignups7d: users.length > 0 ? users.length : 0,
-    newSignups30d: users.length > 0 ? users.length : 0,
-    activeCourses: (courses.length + trainings.length) || stats.totalCourses || 0,
-    pendingApprovals: 0,
-    openListings: internships.length + careers.length,
-    monthEnrollments: stats.totalEnrollments || 0,
-    enrollmentTrend: [
-      { month: "Jan", enrollments: 0 },
-      { month: "Feb", enrollments: 0 },
-      { month: "Mar", enrollments: 0 },
-      { month: "Apr", enrollments: 0 },
-      { month: "May", enrollments: 0 },
-      { month: "Jun", enrollments: 1 },
-      { month: "Jul", enrollments: stats.totalEnrollments || 2 },
-      { month: "Aug", enrollments: stats.totalEnrollments || 2 },
-    ],
-    topCourses: topCourses.length > 0 ? topCourses : [{ title: "General", enrollments: 0 }],
-    leaderboard,
-  };
+  const data = await fetchApi("/admin/stats");
+  return data;
 }
 
 // ─── Approvals ────────────────────────────────────────────────────────────────
@@ -268,76 +225,13 @@ export interface ApprovalItem {
 }
 
 export async function listApprovals(): Promise<ApprovalItem[]> {
-  const [courses, trainings, blogs, internships, careers] = await Promise.all([
-    fetchApi("/admin/courses").catch(() => []),
-    fetchApi("/admin/trainings").catch(() => []),
-    fetchApi("/admin/blogs").catch(() => []),
-    fetchApi("/admin/internships").catch(() => []),
-    fetchApi("/admin/careers").catch(() => []),
-  ]);
-  
-  const c: ApprovalItem[] = courses
-    .filter((x: any) => x.status === "pending_approval")
-    .map((x: any) => ({
-      id: x._id || x.id,
-      type: "Course",
-      title: x.title,
-      submittedBy: x.createdBy || "Educator",
-      submittedOn: x.updatedAt || new Date().toISOString(),
-      preview: x.description || "",
-    }));
-    
-  const t: ApprovalItem[] = trainings
-    .filter((x: any) => x.status === "pending_approval")
-    .map((x: any) => ({
-      id: x._id || x.id,
-      type: "Training",
-      title: x.title,
-      submittedBy: x.createdBy || "Educator",
-      submittedOn: x.updatedAt || new Date().toISOString(),
-      preview: x.description || "",
-    }));
-    
-  const b: ApprovalItem[] = blogs
-    .filter((x: any) => x.status === "pending_approval")
-    .map((x: any) => ({
-      id: x._id || x.id,
-      type: "Blog",
-      title: x.title,
-      submittedBy: x.author || "User",
-      submittedOn: x.updatedAt || new Date().toISOString(),
-      preview: x.excerpt || x.description || "",
-    }));
-
-  const i: ApprovalItem[] = internships
-    .filter((x: any) => x.status === "pending_approval")
-    .map((x: any) => ({
-      id: x._id || x.id,
-      type: "Internship",
-      title: x.title,
-      submittedBy: x.createdBy || "HR",
-      submittedOn: x.updatedAt || new Date().toISOString(),
-      preview: x.description || "",
-    }));
-
-  const ca: ApprovalItem[] = careers
-    .filter((x: any) => x.status === "pending_approval")
-    .map((x: any) => ({
-      id: x._id || x.id,
-      type: "Career",
-      title: x.title,
-      submittedBy: x.createdBy || "HR",
-      submittedOn: x.updatedAt || new Date().toISOString(),
-      preview: x.description || "",
-    }));
-    
-  return [...c, ...t, ...b, ...i, ...ca].sort((a, z) => (a.submittedOn < z.submittedOn ? 1 : -1));
+  return fetchApi("/admin/approvals");
 }
 
 // ─── Internships ──────────────────────────────────────────────────────────────
 
 export async function listInternships(): Promise<Internship[]> {
-  const data = await fetchApi("/admin/internships").catch(() => []);
+  const data = await fetchApi("/admin/internships");
   return data.map((i: any) => ({
     id: i._id || i.id,
     title: i.title || "",
@@ -385,7 +279,7 @@ export async function deleteInternship(id: string) {
 // ─── Careers ──────────────────────────────────────────────────────────────────
 
 export async function listCareers(): Promise<Career[]> {
-  const data = await fetchApi("/admin/careers").catch(() => []);
+  const data = await fetchApi("/admin/careers");
   return data.map((c: any) => ({
     id: c._id || c.id,
     title: c.title || "",
@@ -432,7 +326,7 @@ export async function deleteCareer(id: string) {
 // ─── Shop / Products ──────────────────────────────────────────────────────────
 
 export async function listProducts(): Promise<Product[]> {
-  const data = await fetchApi("/admin/products").catch(() => []);
+  const data = await fetchApi("/admin/products");
   return data.map((p: any) => ({
     id: p._id || p.id,
     name: p.name || "",
@@ -466,7 +360,7 @@ export async function deleteProduct(id: string) {
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export async function listOrders(): Promise<Order[]> {
-  const data = await fetchApi("/admin/orders").catch(() => []);
+  const data = await fetchApi("/admin/orders");
   return data.map((o: any) => ({
     id: o._id || o.id,
     userId: o.userId || "",
@@ -601,7 +495,7 @@ export interface Assessment {
 }
 
 export async function listAssessments(): Promise<Assessment[]> {
-  return fetchApi("/assessments").catch(() => []);
+  return fetchApi("/assessments");
 }
 
 export async function getAssessmentForEdit(id: string): Promise<Assessment> {
@@ -620,5 +514,5 @@ export async function deleteAssessment(id: string) {
 }
 
 export async function getAssessmentResults(id: string) {
-  return fetchApi(`/assessments/${id}/results`).catch(() => []);
+  return fetchApi(`/assessments/${id}/results`);
 }

@@ -42,7 +42,7 @@ import { ImageUploader } from "@/components/panel/ImageUploader";
 import { RepeatableLinkNotes } from "@/components/panel/RepeatableLinkNotes";
 import { canApprove, useSession } from "@/lib/session";
 import type { Course } from "@/lib/types";
-import { listCourses, saveCourse, setCourseStatus } from "@/mocks/api";
+import { listCourses, saveCourse, setCourseStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/courses")({
   head: () => ({
@@ -129,7 +129,7 @@ function CoursesPage() {
       qc.invalidateQueries({ queryKey: ["courses"] });
       qc.invalidateQueries({ queryKey: ["approvals"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
-      setViewing(course);
+      setViewing((prev) => (prev ? { ...prev, status: vars.status, rejectionReason: vars.reason } : null));
       toast.success(
         vars.status === "live"
           ? `"${course.title}" approved and published`
@@ -297,7 +297,7 @@ function CoursesPage() {
                     <div>
                       <p className="mb-2 text-sm font-medium">Video lessons</p>
                       <ul className="space-y-1 text-sm">
-                        {viewing.videos.map((v) => (
+                        {viewing.videos?.map((v: any) => (
                           <li key={v.url}>
                             <span className="text-muted-foreground">{v.notes} — </span>
                             <a href={v.url} className="text-primary underline" target="_blank" rel="noreferrer">
@@ -310,7 +310,7 @@ function CoursesPage() {
                     <div>
                       <p className="mb-2 text-sm font-medium">Roadmap & Curriculum</p>
                       <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-                        {viewing.roadmap.map((r, idx) => (
+                        {viewing.roadmap?.map((r: any, idx: number) => (
                           <li key={idx}>
                             {typeof r === "object" && r !== null ? (
                               <span>
@@ -338,7 +338,7 @@ function CoursesPage() {
                     <p className="mb-3 text-sm text-muted-foreground">
                       {viewing.enrollments} total learners enrolled.
                     </p>
-                    {viewing.learners.length === 0 ? (
+                    {!viewing.learners || viewing.learners.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         Nobody has enrolled yet — once this is live, learners will appear here.
                       </p>
@@ -353,7 +353,7 @@ function CoursesPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {viewing.learners.map((l, i) => (
+                          {viewing.learners?.map((l: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell className="font-medium">{l.name}</TableCell>
                               <TableCell className="text-xs text-muted-foreground">{l.email}</TableCell>

@@ -8,8 +8,7 @@ import { EmptyState } from "@/components/hr/EmptyState";
 import { PageHeader } from "@/components/hr/PageHeader";
 import { StatusBadge } from "@/components/hr/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { api, qk } from "@/lib/api";
-import { STAGES } from "@/lib/mock/db";
+import { api, qk, type Stage } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
@@ -35,18 +34,25 @@ function Dashboard() {
   const navigate = useNavigate();
   const [openApplicant, setOpenApplicant] = useState<string | null>(null);
 
-  const { data: listings = [], isLoading } = useQuery({
+  const { data: dashboard, isLoading } = useQuery({
+    queryKey: qk.dashboard,
+    queryFn: api.dashboard,
+  });
+  const { data: listings = [] } = useQuery({
     queryKey: qk.listings,
     queryFn: api.listings,
   });
-  const { data: applicants = [] } = useQuery({
-    queryKey: qk.applicants(),
-    queryFn: () => api.applicants(),
-  });
 
-  const myListings = listings.filter((l) => l.status !== "Closed");
-  const countFor = (id: string) => applicants.filter((a) => a.listingId === id).length;
-  const recent = applicants.slice(0, 5);
+  const STAGES: Stage[] = ["Applied", "Shortlisted", "OA", "Selected"];
+  const myListings = listings.filter((l) => l.status !== "closed");
+  const recent = dashboard?.recentApplicants ?? [];
+  const pipeline = dashboard?.pipeline ?? { applied: 0, shortlisted: 0, oa: 0, selected: 0 };
+  const pipelineCounts: Record<Stage, number> = {
+    Applied: pipeline.applied,
+    Shortlisted: pipeline.shortlisted,
+    OA: pipeline.oa,
+    Selected: pipeline.selected,
+  };
 
   return (
     <>
@@ -76,7 +82,7 @@ function Dashboard() {
                 className="min-w-[130px] rounded-xl border bg-card px-4 py-3 shadow-sm"
               >
                 <p className="text-2xl font-semibold">
-                  {applicants.filter((a) => a.stage === stage).length}
+                  {pipelineCounts[stage] ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">{stage}</p>
               </div>
@@ -126,9 +132,9 @@ function Dashboard() {
                     {listing.kind} · {listing.domain}
                   </p>
                   <p className="mt-3 text-sm">
-                    <span className="font-semibold">{countFor(listing.id)}</span>{" "}
+                    <span className="font-semibold">{listing.applicantsCount ?? 0}</span>{" "}
                     <span className="text-muted-foreground">
-                      {countFor(listing.id) === 1 ? "application" : "applications"}
+                      {(listing.applicantsCount ?? 0) === 1 ? "application" : "applications"}
                     </span>
                   </p>
                 </Link>
@@ -155,7 +161,7 @@ function Dashboard() {
                   <div>
                     <p className="text-sm font-medium">{applicant.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {listings.find((l) => l.id === applicant.listingId)?.title ?? "Closed listing"}{" "}
+                      {listings.find((l) => l.id === applicant.careerId)?.title ?? "Closed listing"}{" "}
                       · applied {formatDate(applicant.appliedAt)}
                     </p>
                   </div>

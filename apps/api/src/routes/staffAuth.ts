@@ -27,6 +27,13 @@ const DEFAULT_STAFF: Array<{
   name: string;
 }> = [
   {
+    email: "shadanmd566@gmail.com",
+    username: "shadanmd566",
+    password: "Shadan123@",
+    role: "admin",
+    name: "Shadan MD",
+  },
+  {
     email: "admin@enginow.in",
     username: "admin",
     password: "password@123",
@@ -176,8 +183,8 @@ staffAuthRouter.post("/login", async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // Strict portal privilege check
-    if (portal && portal !== account.role) {
+    // Strict portal privilege check (admins have universal access)
+    if (portal && portal !== account.role && account.role !== "admin") {
       const portalFormatted = portal.charAt(0).toUpperCase() + portal.slice(1);
       res.status(403).json({
         error: `Access Denied: This credential does not have ${portalFormatted} portal privileges. (Assigned role: ${account.role.toUpperCase()})`,
@@ -232,8 +239,92 @@ staffAuthRouter.get("/me", requireStaffAuth, async (req: AuthenticatedStaffReque
         email: account.email,
         username: account.username,
         role: account.role,
+        phone: account.phone || "",
+        settings: account.settings || {},
       },
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Update Current Staff Session ───────────────────────────────────────────
+staffAuthRouter.patch("/me", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response): Promise<void> => {
+  try {
+    const { name, email, phone, settings } = req.body;
+    
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email.toLowerCase();
+    if (phone !== undefined) updateData.phone = phone;
+    if (settings) updateData.settings = settings;
+
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ error: "No fields to update." });
+      return;
+    }
+
+    updateData.updatedAt = new Date();
+
+    const result = await staffAccounts().findOneAndUpdate(
+      { _id: new ObjectId(req.staff!.staffId) },
+      { $set: updateData },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      res.status(404).json({ error: "Staff account not found." });
+      return;
+    }
+
+    res.json({
+      staff: {
+        id: result._id.toString(),
+        name: result.name,
+        email: result.email,
+        username: result.username,
+        role: result.role,
+        phone: result.phone || "",
+        settings: result.settings || {},
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Change Password ─────────────────────────────────────────────────────────
+staffAuthRouter.patch("/change-password", requireStaffAuth, async (req: AuthenticatedStaffRequest, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: "currentPassword and newPassword are required." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ error: "New password must be at least 8 characters." });
+      return;
+    }
+
+    const account = await staffAccounts().findOne({ _id: new ObjectId(req.staff!.staffId) });
+    if (!account) {
+      res.status(404).json({ error: "Account not found." });
+      return;
+    }
+
+    const valid = bcrypt.compareSync(currentPassword, account.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Current password is incorrect." });
+      return;
+    }
+
+    const newHash = bcrypt.hashSync(newPassword, 10);
+    await staffAccounts().updateOne(
+      { _id: account._id },
+      { $set: { passwordHash: newHash, updatedAt: new Date() } }
+    );
+
+    res.json({ success: true, message: "Password changed successfully." });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

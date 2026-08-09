@@ -7,7 +7,7 @@ import { useSession, type Role } from "@/lib/store";
 export function RoleGuard({ allow, children }: { allow: Role; children: ReactNode }) {
   const role = useSession((s) => s.role);
 
-  if (role !== allow) {
+  if (role !== allow && role !== "admin") {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="max-w-sm text-center">

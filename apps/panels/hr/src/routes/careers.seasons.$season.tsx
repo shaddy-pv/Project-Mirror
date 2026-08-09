@@ -9,8 +9,7 @@ import { EmptyState } from "@/components/hr/EmptyState";
 import { PageHeader } from "@/components/hr/PageHeader";
 import { StageDropdown } from "@/components/hr/StageDropdown";
 import { Button } from "@/components/ui/button";
-import { api, qk } from "@/lib/api";
-import type { Applicant, SeasonName } from "@/lib/mock/db";
+import { api, qk, type Applicant } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/careers/seasons/$season")({
@@ -38,8 +37,8 @@ function SeasonApplicantsPage() {
   const [openApplicant, setOpenApplicant] = useState<string | null>(null);
 
   const { data: applicants = [], isLoading } = useQuery({
-    queryKey: qk.applicants({ season: season as SeasonName }),
-    queryFn: () => api.applicants({ season: season as SeasonName }),
+    queryKey: qk.applicants(),
+    queryFn: () => api.applicants(),
   });
   const { data: listings = [] } = useQuery({ queryKey: qk.listings, queryFn: api.listings });
 
@@ -67,7 +66,7 @@ function SeasonApplicantsPage() {
       header: "Stage",
       render: (r) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <StageDropdown applicantId={r.id} stage={r.stage} />
+          <StageDropdown applicantId={r.id} stage={r.stage} kind={r.kind} />
         </div>
       ),
     },

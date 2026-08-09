@@ -16,8 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { api, qk } from "@/lib/api";
-import { DOMAINS, type Listing, type ListingKind } from "@/lib/mock/db";
+import { api, qk, DOMAINS, type Listing, type ListingKind } from "@/lib/api";
 import { forInput } from "@/lib/format";
 
 const EMPLOYMENT_TYPES = [
@@ -34,17 +33,17 @@ const schema = z.object({
   title: z.string().min(4, "Give the listing a title of at least 4 characters."),
   description: z.string().min(20, "Write at least a couple of sentences so applicants know more."),
   domain: z.string().min(1, "Pick a domain."),
-  location: z.string().min(2, "Where will this person work?"),
-  employmentType: z.string().min(1, "Pick a type."),
-  closeDate: z.string().min(1, "Pick the last date people can apply."),
-  kind: z.enum(["Job", "Internship"]),
+  locationType: z.string().min(2, "Where will this person work?"),
+  type: z.string().min(1, "Pick a type."),
+  openUntil: z.string().min(1, "Pick the last date people can apply."),
+  kind: z.enum(["job", "internship"]),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export function ListingForm({
   listing,
-  defaultKind = "Job",
+  defaultKind = "job",
 }: {
   listing?: Listing;
   defaultKind?: ListingKind;
@@ -58,10 +57,10 @@ export function ListingForm({
       title: listing?.title ?? "",
       description: listing?.description ?? "",
       domain: listing?.domain ?? "",
-      location: listing?.location ?? "",
-      employmentType: listing?.employmentType ?? "Full-time",
-      closeDate: listing ? forInput(listing.closeDate) : "",
-      kind: listing?.kind ?? defaultKind,
+      locationType: listing?.locationType ?? "",
+      type: listing?.type ?? "Full-time",
+      openUntil: listing ? forInput(listing.openUntil ?? "") : "",
+      kind: (listing?.kind ?? defaultKind) as "job" | "internship",
     },
   });
 
@@ -69,20 +68,21 @@ export function ListingForm({
     mutationFn: async (values: FormValues) => {
       const payload = {
         ...values,
-        closeDate: new Date(values.closeDate).toISOString(),
+        openUntil: new Date(values.openUntil).toISOString(),
+        status: "open",
       };
       if (listing) {
-        return api.updateListing(listing.id, { ...payload, status: "Pending" });
+        return api.updateListing(listing.id, payload);
       }
       return api.createListing(payload);
     },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: qk.listings });
-      queryClient.invalidateQueries({ queryKey: qk.listing(saved.id) });
-      toast.success(listing ? "Listing sent for approval" : "Listing posted");
-      navigate({ to: "/careers/listings/$id", params: { id: saved.id } });
+      if (saved?.id) queryClient.invalidateQueries({ queryKey: qk.listing(saved.id) });
+      toast.success(listing ? "Listing updated" : "Listing posted — pending admin approval");
+      navigate({ to: "/careers/listings" });
     },
-    onError: () => toast.error("Couldn't save this listing. Please try again."),
+    onError: (e: any) => toast.error(e.message || "Couldn't save this listing. Please try again."),
   });
 
   const errors = form.formState.errors;
@@ -110,8 +110,8 @@ export function ListingForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Job">Job</SelectItem>
-              <SelectItem value="Internship">Internship</SelectItem>
+              <SelectItem value="job">Job</SelectItem>
+              <SelectItem value="internship">Internship</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -134,20 +134,20 @@ export function ListingForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="location">Location</Label>
+          <Label htmlFor="locationType">Location / Mode</Label>
           <Input
-            id="location"
-            placeholder="e.g. Bengaluru · Hybrid"
-            {...form.register("location")}
+            id="locationType"
+            placeholder="e.g. Remote, Onsite, Hybrid"
+            {...form.register("locationType")}
           />
-          {errors.location && <p className="text-xs text-danger">{errors.location.message}</p>}
+          {errors.locationType && <p className="text-xs text-danger">{errors.locationType.message}</p>}
         </div>
 
         <div className="space-y-1.5">
           <Label>Type</Label>
           <Select
-            value={form.watch("employmentType")}
-            onValueChange={(v) => form.setValue("employmentType", v)}
+            value={form.watch("type")}
+            onValueChange={(v) => form.setValue("type", v)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Pick a type" />
@@ -163,12 +163,12 @@ export function ListingForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="closeDate">Last date to apply</Label>
-          <Input id="closeDate" type="date" {...form.register("closeDate")} />
+          <Label htmlFor="openUntil">Last date to apply</Label>
+          <Input id="openUntil" type="date" {...form.register("openUntil")} />
           <p className="text-xs text-muted-foreground">
             After this date the listing shows as Expired and nobody can apply.
           </p>
-          {errors.closeDate && <p className="text-xs text-danger">{errors.closeDate.message}</p>}
+          {errors.openUntil && <p className="text-xs text-danger">{errors.openUntil.message}</p>}
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">

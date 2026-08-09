@@ -34,19 +34,30 @@ interface SessionState {
   email: string;
   login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  updateProfile: (name: string, email: string) => void;
 }
 
 const initialAuth = getStoredAuth();
 
 export const useSession = create<SessionState>((set) => ({
-  isAuthenticated: Boolean(initialAuth && initialAuth.user.role === "educator"),
+  isAuthenticated: Boolean(initialAuth && (initialAuth.user.role === "educator" || initialAuth.user.role === "admin")),
   role: initialAuth?.user?.role || "educator",
   name: initialAuth?.user?.name || "Dr. Aris Thorne",
   email: initialAuth?.user?.email || "educator@enginow.in",
+  updateProfile: (name, email) => {
+    set({ name, email });
+    const auth = getStoredAuth();
+    if (auth) {
+      auth.user.name = name;
+      auth.user.email = email;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+    }
+  },
 
   login: async (identifier, password) => {
     try {
-      const res = await fetch("http://localhost:5000/api/staff/login", {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${baseUrl}/staff/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password, portal: "educator" }),
@@ -58,7 +69,7 @@ export const useSession = create<SessionState>((set) => ({
       }
 
       const user = data.staff || data.user;
-      if (!user || user.role !== "educator") {
+      if (!user || (user.role !== "educator" && user.role !== "admin")) {
         return { success: false, error: "Access denied: This account is not authorized for the Educator panel." };
       }
 
@@ -123,7 +134,7 @@ export const session = { role: "educator" as Role };
 
 export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactNode }) {
   const role = useSession((s) => s.role);
-  if (!allow.includes(role)) {
+  if (!allow.includes(role) && role !== "admin") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-sm text-center">

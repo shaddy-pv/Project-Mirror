@@ -23,6 +23,7 @@ export interface Course {
   description: string;
   category: Category;
   pricing: PricingType;
+  duration?: string;
   badges: CourseBadge[];
   bannerUrl?: string | undefined;
   videos: VideoLink[];
@@ -59,7 +60,7 @@ export interface Resource {
   description: string;
   tag: string;
   fileName: string;
-  uploadedAt: string;
+  createdAt: string;
   downloads: number;
 }
 

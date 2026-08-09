@@ -2,8 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from "@/lib/api";
-import { STAGES, type Stage } from "@/lib/mock/db";
+import { api, STAGES, type Stage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const stageTone: Record<Stage, string> = {
@@ -16,19 +15,22 @@ const stageTone: Record<Stage, string> = {
 export function StageDropdown({
   applicantId,
   stage,
+  kind = "job",
   className,
 }: {
   applicantId: string;
   stage: Stage;
+  kind?: "job" | "internship";
   className?: string;
 }) {
   const queryClient = useQueryClient();
 
   const move = useMutation({
-    mutationFn: (next: Stage) => api.moveApplicant(applicantId, next),
-    onSuccess: (applicant) => {
-      queryClient.invalidateQueries({ queryKey: ["applicants"] });
-      toast.success(`Moved to ${applicant.stage}`);
+    mutationFn: (next: Stage) => api.moveApplicant(applicantId, next, kind),
+    onSuccess: (_data, next) => {
+      queryClient.invalidateQueries({ queryKey: ["hr", "applicants"] });
+      queryClient.invalidateQueries({ queryKey: ["hr", "dashboard"] });
+      toast.success(`Moved to ${next}`);
     },
     onError: () => toast.error("Couldn't move this applicant. Please try again."),
   });

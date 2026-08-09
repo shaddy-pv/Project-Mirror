@@ -37,14 +37,15 @@ interface SessionState {
 const initialAuth = getStoredAuth();
 
 export const useSalesAuth = create<SessionState>((set) => ({
-  isAuthenticated: Boolean(initialAuth && initialAuth.user.role === "sales"),
+  isAuthenticated: Boolean(initialAuth && (initialAuth.user.role === "sales" || initialAuth.user.role === "admin")),
   role: initialAuth?.user?.role || "sales",
   name: initialAuth?.user?.name || "Riya Malhotra",
   email: initialAuth?.user?.email || "sales@enginow.in",
 
   login: async (identifier, password) => {
     try {
-      const res = await fetch("http://localhost:5000/api/staff/login", {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${baseUrl}/staff/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password, portal: "sales" }),
@@ -56,7 +57,7 @@ export const useSalesAuth = create<SessionState>((set) => ({
       }
 
       const user = data.staff || data.user;
-      if (!user || user.role !== "sales") {
+      if (!user || (user.role !== "sales" && user.role !== "admin")) {
         return { success: false, error: "Access denied: This account is not authorized for the Sales panel." };
       }
 

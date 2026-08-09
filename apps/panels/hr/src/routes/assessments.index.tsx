@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/hr/PageHeader";
 import { StatusBadge } from "@/components/hr/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { api, qk } from "@/lib/api";
-import type { Assessment } from "@/lib/mock/db";
+import type { Assessment } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/assessments/")({
@@ -53,8 +53,8 @@ function AssessmentsPage() {
     {
       key: "duration",
       header: "Duration",
-      sortValue: (r) => r.durationMins,
-      render: (r) => `${r.durationMins} min`,
+      sortValue: (r) => r.durationMins ?? 0,
+      render: (r) => `${r.durationMins ?? "?"} min`,
     },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
     {

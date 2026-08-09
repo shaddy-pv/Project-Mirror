@@ -86,7 +86,8 @@ export const useSession = create<SessionState>((set) => ({
 
   login: async (identifier, password) => {
     try {
-      const res = await fetch("http://localhost:5000/api/staff/login", {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${baseUrl}/staff/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
@@ -121,33 +122,8 @@ export const useSession = create<SessionState>((set) => ({
       });
 
       return { success: true };
-    } catch {
-      // Offline / local-dev fallback
-      const id = identifier.toLowerCase().trim();
-      const fallbacks: Record<string, { name: string; role: Role }> = {
-        "admin@enginow.in": { name: "Admin Lead", role: "admin" },
-        "admin":             { name: "Admin Lead", role: "admin" },
-        "hr@enginow.in":     { name: "HR Manager", role: "hr" },
-        "hr":                { name: "HR Manager", role: "hr" },
-        "educator@enginow.in": { name: "Dr. Aris Thorne", role: "educator" },
-        "educator":          { name: "Dr. Aris Thorne", role: "educator" },
-        "sales@enginow.in":  { name: "Riya Malhotra", role: "sales" },
-        "sales":             { name: "Riya Malhotra", role: "sales" },
-      };
-
-      const match = fallbacks[id];
-      if (match && password === "password@123") {
-        const authData: StoredAuth = {
-          token: `mock-${match.role}-token-` + Date.now(),
-          user: { id: `${match.role}-1`, name: match.name, email: id.includes("@") ? id : `${id}@enginow.in`, role: match.role },
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
-        set({ isAuthenticated: true, role: match.role, name: match.name, email: authData.user.email });
-        return { success: true };
-      }
-
-      if (match) return { success: false, error: "Incorrect password." };
-      return { success: false, error: "No staff account found with that email." };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to connect to authentication server." };
     }
   },
 

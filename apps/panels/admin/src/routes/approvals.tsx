@@ -11,7 +11,7 @@ import { ApprovalBar } from "@/components/panel/ApprovalBar";
 import {
   listApprovals, setBlogStatus, setCourseStatus,
   setInternshipStatus, setCareerStatus, type ApprovalItem
-} from "@/mocks/api";
+} from "@/lib/api";
 
 export const Route = createFileRoute("/approvals")({
   head: () => ({
