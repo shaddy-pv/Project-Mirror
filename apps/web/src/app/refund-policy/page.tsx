@@ -1,51 +1,56 @@
-import React from 'react';
-import { Metadata } from 'next';
+import { Metadata } from "next";
+import { PolicyLayout } from "@/components/PolicyLayout";
 
 export const metadata: Metadata = {
-  title: 'Refund Policy — Enginow',
-  description: 'Refund policy for courses, trainings, and shop products on Enginow.',
+  title: "Refund Policy — Enginow",
+  description: "Refund policy for courses, trainings, and shop products on Enginow.",
 };
 
 export default function RefundPolicyPage() {
   return (
-    <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-16">
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-4">Refund Policy</h1>
-          <p className="text-gray-500">Last updated: August 2026</p>
-        </div>
-        
-        <div className="prose prose-indigo dark:prose-invert max-w-none">
-          <p>
-            Thank you for purchasing our courses, training programs, and products at Enginow. We want to ensure that our users have a rewarding experience while they are discovering, assessing, and purchasing our educational content and physical products.
-          </p>
-
-          <div className="bg-red-50 dark:bg-red-500/10 border-l-4 border-red-500 p-6 my-8 rounded-r-xl">
-            <h3 className="text-red-800 dark:text-red-400 mt-0">No Refund Policy</h3>
-            <p className="text-red-700 dark:text-red-300 mb-0">
-              Please note that currently, <strong>no refunds are available</strong> for any feature, course, training, or product purchase on the platform. All sales are considered final and non-refundable.
-            </p>
-          </div>
-
-          <h2>1. Digital Products & Courses</h2>
-          <p>
-            Due to the digital nature of our courses, training programs, and assessments, once access is granted, the product cannot be "returned." Therefore, we do not offer refunds or exchanges for any digital products or services purchased on Enginow.
-          </p>
-
-          <h2>2. Physical Products (Shop)</h2>
-          <p>
-            For physical products purchased from our Shop (e.g., T-shirts, diaries, mugs), all sales are final. We do not accept returns or offer refunds for these items unless they arrived damaged or defective due to manufacturing issues.
-          </p>
-          <p>
-            If you received a defective item, please reach out to us via the Contact page within 48 hours of delivery with photographic evidence, and our support team will assist you.
-          </p>
-
-          <h2>3. Shipping Issues</h2>
-          <p>
-            We use Delhivery as our primary shipping partner. For issues related to shipping delays or lost packages, please refer to our <a href="/shipping-policy">Shipping Policy</a>. Enginow is not liable for issues that occur once the package has been handed over to the courier.
-          </p>
-        </div>
+    <PolicyLayout
+      title="Refund Policy"
+      subtitle="Thank you for your purchase. Please read our refund policy carefully before buying any course, training, or product."
+      updated="August 2026"
+    >
+      <div
+        className="rounded-2xl border p-5"
+        style={{ borderColor: "rgba(220,38,38,0.25)", background: "rgba(254,242,242,0.6)" }}
+      >
+        <p className="font-semibold" style={{ color: "#991b1b" }}>⚠ No Refund Policy</p>
+        <p className="mt-1 text-[14.5px]" style={{ color: "#b91c1c" }}>
+          All sales on Enginow are considered <strong>final and non-refundable</strong>. Please review your selection carefully before purchasing.
+        </p>
       </div>
-    </main>
+
+      <section>
+        <h2>1. Digital Products &amp; Courses</h2>
+        <p>
+          Due to the digital nature of our courses, training programs, and assessments, once access is granted the product
+          cannot be &quot;returned.&quot; We do not offer refunds or exchanges for any digital product purchased on Enginow.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. Physical Products (Shop)</h2>
+        <p>
+          For physical products from our Shop (e.g., T-shirts, diaries, mugs), all sales are final. We do not accept returns
+          or offer refunds unless the item arrived damaged or defective due to a manufacturing issue.
+        </p>
+        <p>
+          If you received a defective item, contact us via the <a href="/contact" style={{ color: "#B8922E", textDecoration: "underline" }}>Contact page</a> within
+          48 hours of delivery with photographic evidence, and our support team will assist you.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Shipping Issues</h2>
+        <p>
+          We use Delhivery as our primary shipping partner. For shipping delays or lost packages, please refer to our{" "}
+          <a href="/shipping-policy" style={{ color: "#B8922E", textDecoration: "underline" }}>Shipping Policy</a>. Enginow is not
+          liable for issues that occur once the package has been handed to the courier.
+        </p>
+      </section>
+    </PolicyLayout>
   );
 }
