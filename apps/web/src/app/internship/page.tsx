@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Search, Calendar, MapPin, Briefcase, ChevronRight, X, Loader2, CheckCircle2, Share2, Check, Gift } from "lucide-react";
@@ -39,7 +39,10 @@ const TYPES = ["All", "Summer", "Monsoon", "Winter", "Spring"];
 
 export default function InternshipsPage() {
   const { isAuthenticated } = useAuthContext();
-  const { data: internships } = useSuspenseQuery(internshipsQueryOptions);
+  const { data: internships = [], isLoading } = useQuery({
+    ...internshipsQueryOptions,
+    staleTime: 60_000,
+  });
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
   
@@ -188,7 +191,20 @@ export default function InternshipsPage() {
       {/* Grid */}
       <section className="relative px-6 py-14 md:px-10">
         <div className="mx-auto max-w-[1440px]">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-[23px] border border-ink/5 bg-white p-6 animate-pulse">
+                  <div className="h-5 w-24 rounded-full bg-ink/8 mb-5" />
+                  <div className="h-7 w-3/4 rounded-lg bg-ink/8 mb-3" />
+                  <div className="h-4 w-1/2 rounded-lg bg-ink/5 mb-5" />
+                  <div className="h-3 w-full rounded bg-ink/5 mb-2" />
+                  <div className="h-3 w-5/6 rounded bg-ink/5 mb-10" />
+                  <div className="h-10 w-full rounded-full bg-ink/8 mt-auto" />
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="glass-shell mx-auto max-w-sm text-center">
               <div className="glass-card" style={{ borderRadius: "23px" }}>
                 <Briefcase className="mx-auto h-10 w-10 opacity-30" style={{ color: "var(--ink)" }} />
