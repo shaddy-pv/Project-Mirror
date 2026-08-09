@@ -7,7 +7,7 @@ const uri = process.env.MONGODB_URI;
 if (!uri) throw new Error("Missing MONGODB_URI");
 
 async function run() {
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri!);
   await client.connect();
   const db = client.db("enginow");
 

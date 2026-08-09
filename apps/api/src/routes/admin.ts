@@ -380,7 +380,7 @@ router.put("/courses/:id", requireStaffAuth, async (req: AuthenticatedStaffReque
     const existing = await courses().findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    if (role !== "admin" && existing.createdBy !== req.staff!.name && existing.authorId !== req.staff!.staffId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.name && (existing as any).authorId !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this course" });
     }
 
@@ -391,7 +391,7 @@ router.put("/courses/:id", requireStaffAuth, async (req: AuthenticatedStaffReque
 
     await courses().updateOne(
       { _id: new ObjectId(id) },
-      { $set: { ...req.body, status, authorId: existing.authorId || req.staff!.staffId, updatedAt: new Date() } }
+      { $set: { ...req.body, status, authorId: (existing as any).authorId || req.staff!.staffId, updatedAt: new Date() } }
     );
     await cacheDel(COURSES_CACHE_KEY);
     res.json({ success: true });
@@ -739,14 +739,14 @@ router.get("/stats", requireStaffAuth, async (req: AuthenticatedStaffRequest, re
     const openListings = internshipsData.filter(i => i.status === "open").length 
                        + careersData.filter(c => c.status === "open").length;
 
-    const monthEnrollments = enrollmentsData.filter(e => new Date(e.enrolledAt || e.createdAt || 0) >= firstDayOfMonth).length;
+    const monthEnrollments = enrollmentsData.filter((e: any) => new Date(e.enrolledAt || e.createdAt || 0) >= firstDayOfMonth).length;
 
     // Monthly Enrollment Trend (last 6 months including current)
     const enrollmentTrend = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const count = enrollmentsData.filter(e => {
+      const count = enrollmentsData.filter((e: any) => {
         const dAt = new Date(e.enrolledAt || e.createdAt || 0);
         return dAt >= d && dAt < nextMonth;
       }).length;
@@ -757,8 +757,8 @@ router.get("/stats", requireStaffAuth, async (req: AuthenticatedStaffRequest, re
     }
 
     const allCourses = [...coursesData, ...trainingsData];
-    allCourses.sort((a, b) => (b.enrollments || b.learners?.length || 0) - (a.enrollments || a.learners?.length || 0));
-    const topCourses = allCourses.slice(0, 4).map(c => ({
+    allCourses.sort((a: any, b: any) => (b.enrollments || b.learners?.length || 0) - (a.enrollments || a.learners?.length || 0));
+    const topCourses = allCourses.slice(0, 4).map((c: any) => ({
       title: c.title || "Course",
       enrollments: c.enrollments || c.learners?.length || 0
     }));
@@ -1174,7 +1174,7 @@ router.get("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffReq
     const id = String(req.params.id);
     const doc = await trainings().findOne({ _id: new ObjectId(id) });
     if (!doc) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && doc.createdBy !== req.staff!.name && doc.authorId !== req.staff!.staffId) {
+    if (role !== "admin" && doc.createdBy !== req.staff!.name && (doc as any).authorId !== req.staff!.staffId) {
       return res.status(403).json({ error: "Cannot view others' trainings" });
     }
     const { _id, ...rest } = doc;
@@ -1192,7 +1192,7 @@ router.put("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffReq
     
     const existing = await trainings().findOne({ _id: new ObjectId(id) });
     if (!existing) return res.status(404).json({ error: "Not found" });
-    if (role !== "admin" && existing.createdBy !== req.staff!.name && existing.authorId !== req.staff!.staffId) {
+    if (role !== "admin" && existing.createdBy !== req.staff!.name && (existing as any).authorId !== req.staff!.staffId) {
       return res.status(403).json({ error: "Only the creator or an admin can edit this" });
     }
 
@@ -1203,7 +1203,7 @@ router.put("/trainings/:id", requireStaffAuth, async (req: AuthenticatedStaffReq
 
     await trainings().updateOne(
       { _id: new ObjectId(id) },
-      { $set: { ...req.body, status, authorId: existing.authorId || req.staff!.staffId, updatedAt: new Date() } }
+      { $set: { ...req.body, status, authorId: (existing as any).authorId || req.staff!.staffId, updatedAt: new Date() } }
     );
     await cacheDel(TRAININGS_CACHE_KEY);
     res.json({ success: true });
@@ -1460,7 +1460,7 @@ router.get("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffReque
   try {
     const role = checkRoles(req, ["hr"]);
     const staffId = req.staff!.staffId;
-    const { id } = req.params;
+    const id = String(req.params.id);
     
     const filter: any = { _id: new ObjectId(id) };
     if (role === "hr") {
@@ -1494,7 +1494,7 @@ router.put("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffReque
   try {
     const role = checkRoles(req, ["hr"]);
     const staffId = req.staff!.staffId;
-    const { id } = req.params;
+    const id = String(req.params.id);
     
     const filter: any = { _id: new ObjectId(id) };
     if (role === "hr") {
@@ -1585,7 +1585,7 @@ router.delete("/careers/:id", requireStaffAuth, async (req: AuthenticatedStaffRe
   try {
     const role = checkRoles(req, ["hr"]);
     const staffId = req.staff!.staffId;
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     const filter: any = { _id: new ObjectId(id) };
     if (role === "hr") {
@@ -2009,7 +2009,7 @@ router.get("/educator/dashboard", requireStaffAuth, async (req: AuthenticatedSta
     const educatorCourses = await courses().find({ $or: [{ authorId: educatorId }, { createdBy: req.staff!.name }] }).toArray();
     const totalCourses = educatorCourses.length;
     const liveCourses = educatorCourses.filter(c => c.status === "live" || c.status === "published").length;
-    const pendingCourses = educatorCourses.filter(c => c.status === "pending" || c.status === "pending_approval").length;
+    const pendingCourses = educatorCourses.filter(c => (c.status as string) === "pending" || c.status === "pending_approval").length;
     const courseIds = educatorCourses.map(c => c._id.toString());
     
     // 2. Get enrollments for these courses
@@ -2062,7 +2062,7 @@ router.get("/educator/dashboard", requireStaffAuth, async (req: AuthenticatedSta
         courseId: cId,
         courseTitle: c?.title || "Unknown Course",
         enrolledAt: e.enrolledAt,
-        academicYear: p?.academicYear || "Unknown",
+        academicYear: (p as any)?.academicYear || "Unknown",
         type: c?.isPremium ? "Premium" : "Free"
       };
     });
