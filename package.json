@@ -20,6 +20,8 @@
     "dev:panels": "npm run dev --workspace=apps/panels/admin",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
+    "build": "npm run build:api",
+    "start": "npm run start --workspace=apps/api",
     "lint": "npm run lint --workspaces --if-present"
   },
   "dependencies": {
