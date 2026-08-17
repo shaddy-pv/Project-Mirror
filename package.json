@@ -23,6 +23,7 @@
     "build": "npm run build:api",
     "start": "npm run start --workspace=apps/api",
     "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "tsc --noEmit --project apps/api/tsconfig.json && tsc --noEmit --project apps/web/tsconfig.json",
     "test:e2e": "node scripts/run-e2e.mjs"
   },
   "dependencies": {

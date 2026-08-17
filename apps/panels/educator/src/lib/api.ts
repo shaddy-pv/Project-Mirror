@@ -11,7 +11,9 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
     try {
       const auth = JSON.parse(rawAuth);
       if (auth.token) headers.set("Authorization", `Bearer ${auth.token}`);
-    } catch {}
+    } catch (e) {
+      void e;
+    }
   }
   
   const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });

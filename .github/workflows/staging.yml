@@ -1,0 +1,48 @@
+name: Staging Deployment
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  # ─── DEPLOY BACKEND API TO STAGING ──────────────────────────────────────────
+  deploy-api-staging:
+    name: Deploy API to Render (Staging)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Staging Deploy Hook
+        if: env.RENDER_STAGING_DEPLOY_HOOK != ''
+        run: |
+          echo "Triggering Render staging deployment..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Staging deploy failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Staging API deploy successfully queued!"
+        env:
+          RENDER_STAGING_DEPLOY_HOOK: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK }}
+
+  # ─── DEPLOY MAIN WEB TO STAGING ─────────────────────────────────────────────
+  deploy-web-staging:
+    name: Deploy Web to Vercel (Staging)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Staging
+        uses: amondnet/vercel-action@v25
+        if: env.VERCEL_TOKEN != ''
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          working-directory: ./
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

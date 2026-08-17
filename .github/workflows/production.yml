@@ -1,0 +1,70 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # ─── DEPLOY BACKEND API TO PRODUCTION ───────────────────────────────────────
+  deploy-api:
+    name: Deploy API to Render (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Production Deploy Hook
+        if: env.RENDER_DEPLOY_HOOK != ''
+        run: |
+          echo "Triggering Render production deployment..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Production deploy failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Production API deploy successfully queued!"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+  # ─── DEPLOY MAIN WEB TO PRODUCTION ─────────────────────────────────────────
+  deploy-web:
+    name: Deploy Web to Vercel (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Production
+        uses: amondnet/vercel-action@v25
+        if: env.VERCEL_TOKEN != ''
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          vercel-args: "--prod"
+          working-directory: ./
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # ─── PRODUCTION HEALTH CHECK ────────────────────────────────────────────────
+  health-check:
+    name: Production Health Check (/api/public/stats)
+    needs: [deploy-api, deploy-web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Backend API Health Endpoint
+        run: |
+          echo "Running health check against /api/public/stats..."
+          if [ -n "${{ secrets.PROD_API_URL }}" ]; then
+            ENDPOINT="${{ secrets.PROD_API_URL }}/api/public/stats"
+            echo "Checking: $ENDPOINT"
+            curl -f --retry 6 --retry-delay 10 --retry-connrefused "$ENDPOINT" || {
+              echo "::error::Health check failed for $ENDPOINT"
+              exit 1
+            }
+            echo "Health check passed successfully!"
+          else
+            echo "PROD_API_URL secret not set. Skipping live curl verification."
+          fi

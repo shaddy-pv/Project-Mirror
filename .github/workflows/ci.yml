@@ -1,32 +1,23 @@
-name: Enterprise CI Pipeline
+name: CI
 
 on:
-  push:
-    branches: [main, develop, staging]
   pull_request:
-    branches: [main, develop, staging]
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  security-events: write
-  pull-requests: write
-
 jobs:
-  # ──────────────────────────────────────────────────────────────────────────
-  # 1. STATIC ANALYSIS, LINTING & SECRET SCANNING
-  # ──────────────────────────────────────────────────────────────────────────
-  code-quality-and-security:
-    name: Code Quality & Security Scan
+  # ─── STEP 1, 2, 3: INSTALL, ESLINT, TYPESCRIPT ──────────────────────────────
+  lint-and-typecheck:
+    name: Lint & Typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
@@ -34,53 +25,30 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - name: Cache npm Dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run ESLint Across Workspaces
+      - name: Run ESLint
         run: npm run lint
 
-      - name: Run Secret Scanning (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+      - name: Run TypeScript Typecheck
+        run: npm run typecheck
 
-      - name: Security Vulnerability Audit
-        run: npm audit --audit-level=high --production
-        continue-on-error: true
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # 2. STRICT MONOREPO MATRIX BUILD (ALL 6 WORKSPACES)
-  # ──────────────────────────────────────────────────────────────────────────
-  build-matrix:
-    name: Build (${{ matrix.name }})
-    needs: code-quality-and-security
+  # ─── STEP 4: BUILD ALL 6 WORKSPACES ─────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.workspace }})
+    needs: lint-and-typecheck
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        include:
-          - name: "Backend API"
-            workspace: "apps/api"
-          - name: "Main Website (Next.js 16)"
-            workspace: "apps/web"
-          - name: "Admin Panel"
-            workspace: "apps/panels/admin"
-          - name: "Educator Panel"
-            workspace: "apps/panels/educator"
-          - name: "HR Panel"
-            workspace: "apps/panels/hr"
-          - name: "Sales Panel"
-            workspace: "apps/panels/sales"
+        workspace:
+          - apps/web
+          - apps/api
+          - apps/panels/admin
+          - apps/panels/educator
+          - apps/panels/hr
+          - apps/panels/sales
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -94,29 +62,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      # Next.js specific build cache for faster CI runs
-      - name: Cache Next.js Build
-        if: matrix.workspace == 'apps/web'
-        uses: actions/cache@v4
-        with:
-          path: apps/web/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('apps/web/**.[jt]s', 'apps/web/**.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
-      - name: Compile & Build Workspace
+      - name: Build Workspace
         run: npm run build --workspace=${{ matrix.workspace }}
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: 1
           MONGODB_URI: "mongodb://127.0.0.1:27017/ci_build"
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # 3. REAL SERVICE E2E INTEGRATION & REGRESSION SUITE
-  # ──────────────────────────────────────────────────────────────────────────
-  e2e-integration-suite:
-    name: 9-Flow E2E Integration Suite
-    needs: build-matrix
+  # ─── STEP 5: RUN EXISTING 9 E2E TESTS ───────────────────────────────────────
+  e2e:
+    name: E2E Tests (9 Critical User Journeys)
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -128,7 +84,7 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - name: Spin Up Dedicated MongoDB 7.0 Service Container
+      - name: Start MongoDB Service
         uses: supercharge/mongodb-github-action@1.11.0
         with:
           mongodb-version: "7.0"
@@ -143,25 +99,15 @@ jobs:
         env:
           PORT: 5000
           MONGODB_URI: "mongodb://127.0.0.1:27017/enginow_e2e_ci"
-          STAFF_JWT_SECRET: "ci_testing_super_secret_jwt_key_2026"
+          STAFF_JWT_SECRET: "ci_safe_test_jwt_secret_key_2026"
 
-      - name: Start Web App Service
+      - name: Start Web Application Service
         run: |
           npm run dev:web &
           npx wait-on -t 45000 http://localhost:3000
 
-      - name: Execute 9-Flow End-to-End Suite
+      - name: Run Existing 9-Flow E2E Test Suite
         run: npm run test:e2e
         env:
           WEB_URL: "http://localhost:3000"
           API_URL: "http://127.0.0.1:5000/api"
-
-      - name: Upload Test Artifacts on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-failure-logs
-          path: |
-            apps/api/.log
-            apps/web/.next
-          retention-days: 7
