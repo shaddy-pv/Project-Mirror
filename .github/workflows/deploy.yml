@@ -1,0 +1,84 @@
+name: Enterprise CD Deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # 1. DEPLOY BACKEND API TO PRODUCTION
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-backend-api:
+    name: Deploy API (Render / Container Service)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Zero-Downtime Deployment
+        if: env.RENDER_DEPLOY_HOOK != ''
+        run: |
+          echo "Triggering API zero-downtime deployment..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Deployment webhook failed with status $HTTP_CODE"
+            exit 1
+          fi
+          echo "Deployment successfully queued on Render!"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2. DEPLOY MAIN FRONTEND TO PRODUCTION (VERCEL)
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-frontend-web:
+    name: Deploy Main Web (Vercel Production)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        if: env.VERCEL_TOKEN != ''
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          vercel-args: "--prod"
+          working-directory: ./
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 3. POST-DEPLOYMENT HEALTH AUDIT & SMOKE TESTS
+  # ──────────────────────────────────────────────────────────────────────────
+  post-deploy-health-check:
+    name: Post-Deployment Smoke & Health Verification
+    needs: [deploy-backend-api, deploy-frontend-web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Live Production Endpoints
+        run: |
+          echo "Verifying live production endpoints..."
+          
+          # Check API health
+          if [ -n "${{ secrets.PROD_API_URL }}" ]; then
+            echo "Checking API: ${{ secrets.PROD_API_URL }}/api/public/stats"
+            curl -f --retry 5 --retry-delay 10 --retry-connrefused "${{ secrets.PROD_API_URL }}/api/public/stats" || exit 1
+          fi
+
+          # Check Web health
+          if [ -n "${{ secrets.PROD_WEB_URL }}" ]; then
+            echo "Checking Web: ${{ secrets.PROD_WEB_URL }}"
+            curl -f --retry 5 --retry-delay 10 --retry-connrefused "${{ secrets.PROD_WEB_URL }}" || exit 1
+          fi
+
+          echo "All production smoke tests passed successfully!"

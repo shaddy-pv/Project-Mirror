@@ -22,7 +22,8 @@
     "build:api": "npm run build --workspace=apps/api",
     "build": "npm run build:api",
     "start": "npm run start --workspace=apps/api",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "test:e2e": "node scripts/run-e2e.mjs"
   },
   "dependencies": {
     "soft-hues-workshop-main": "file:../soft-hues-workshop-main"
