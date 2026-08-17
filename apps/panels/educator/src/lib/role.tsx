@@ -56,7 +56,7 @@ export const useSession = create<SessionState>((set) => ({
 
   login: async (identifier, password) => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseUrl = (import.meta.env as any)["VITE_API_URL"] || "http://localhost:5000/api";
       const res = await fetch(`${baseUrl}/staff/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

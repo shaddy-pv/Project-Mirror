@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { SmoothScrollProvider } from "@/providers/smooth-scroll-provider";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -18,10 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Enginow — Learn. Build. Belong.",
-  description: "Enginow is a modern learning house for engineers.",
+  description: "Enginow is a modern learning platform for engineers — courses, cohort training, internships, and careers designed by practitioners.",
 };
-
-export const dynamic = "force-dynamic";
 
 export default function RootLayout({
   children,
@@ -33,13 +32,15 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col selection:bg-[#15171C] selection:text-[#FFF9ED]">
         <QueryProvider>
           <AuthProvider>
-            <Suspense fallback={null}>
-              <ReferralCapture />
-            </Suspense>
-            {children}
+            <SmoothScrollProvider>
+              <Suspense fallback={null}>
+                <ReferralCapture />
+              </Suspense>
+              {children}
+            </SmoothScrollProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

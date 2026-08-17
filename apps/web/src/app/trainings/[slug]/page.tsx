@@ -12,7 +12,7 @@ import { getMyEnrollments, createRazorpayOrder, verifyRazorpayPayment, validateR
 
 const trainingQueryOptions = (slug: string) =>
   queryOptions({
-    queryKey: ["courses", "slug", slug],
+    queryKey: ["trainings", "slug", slug],
     queryFn: () => getTrainingBySlug({ data: { slug } })
   });
 
@@ -25,7 +25,7 @@ function TrainingContent() {
   const { slug } = useParams() as { slug: string };
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
-  const { data: training } = useSuspenseQuery(trainingQueryOptions(slug));
+  const { data: training, isLoading: isTrainingLoading } = useQuery(trainingQueryOptions(slug));
   const { isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -36,8 +36,6 @@ function TrainingContent() {
   const [refInput, setRefInput] = useState(refCode || "");
   const [validatingRef, setValidatingRef] = useState(false);
   const [refError, setRefError] = useState("");
-
-  if (!training) throw notFound();
 
   const { data: myEnrollments, isLoading: isEnrollmentsLoading } = useQuery({
     queryKey: ["enrollments"],
@@ -51,23 +49,32 @@ function TrainingContent() {
     enabled: isAuthenticated && !isAuthLoading
   });
 
-  const isCheckingEnrollment = isAuthLoading || (isAuthenticated && isEnrollmentsLoading);
-  const isEnrolled = (myEnrollments as Array<{ trainingId?: string; courseId?: string }>)?.some((e) => e.trainingId === training?.id || e.courseId === training?.id) ?? false;
-  const roadmap = Array.isArray(training.roadmap) ? training.roadmap : [];
-
   useEffect(() => {
     if (refCode) localStorage.setItem("enginow_ref", refCode);
   }, [refCode]);
 
   useEffect(() => {
-    if (false) return;
+    if (!training) return;
     const code = refCode ?? localStorage.getItem("enginow_ref");
     if (!code) return;
     validateReferralCode({ data: { code } }).then((result) => {
       if (result.valid) { setAppliedRef(code); setRefDiscount(result.discountPercent ?? 15); }
     }).catch(() => {});
-  }, [refCode]);
+  }, [refCode, training]);
 
+  if (isTrainingLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#15171C]" />
+      </div>
+    );
+  }
+
+  if (!training) return notFound();
+
+  const isCheckingEnrollment = isAuthLoading || (isAuthenticated && isEnrollmentsLoading);
+  const isEnrolled = (myEnrollments as Array<{ trainingId?: string; courseId?: string }>)?.some((e) => e.trainingId === training?.id || e.courseId === training?.id) ?? false;
+  const roadmap = Array.isArray(training.roadmap) ? training.roadmap : [];
   const finalPrice = Math.round(training.discountedPrice - (training.discountedPrice * refDiscount / 100));
 
   async function applyReferralCode() {
@@ -363,7 +370,7 @@ function TrainingContent() {
             {/* Includes sidebar */}
             <aside className="h-fit glass-shell">
               <div className="glass-card" style={{ borderRadius: "23px" }}>
-                <h3 className="display text-lg" style={{ color: "var(--ink)" }}>Course includes</h3>
+                <h3 className="display text-lg" style={{ color: "var(--ink)" }}>Program includes</h3>
                 <ul className="mt-5 space-y-3.5 text-[14px]">
                   {[
                     "Live instructor-led sessions",

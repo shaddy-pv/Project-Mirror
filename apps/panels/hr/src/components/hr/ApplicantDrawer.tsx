@@ -44,7 +44,7 @@ export function ApplicantDrawer({
             <div className="space-y-6 px-4 pb-8">
               <div className="flex flex-wrap items-center gap-3">
                 <StatusBadge status={applicant.stage} />
-                <StageDropdown applicantId={applicant.id} stage={applicant.stage} kind={applicant.kind} />
+                <StageDropdown applicantId={applicant.id} stage={applicant.stage} kind={applicant.kind || "job"} />
               </div>
 
               <div className="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-2">

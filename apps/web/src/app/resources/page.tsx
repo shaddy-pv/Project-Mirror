@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowLeft, Search, FileDown, BookOpen } from "lucide-react";
 import { getResources } from "@/lib/resources.functions";
@@ -22,14 +21,18 @@ const resourcesQueryOptions = queryOptions({
 });
 
 export default function ResourcesPage() {
-  const { data: resources } = useSuspenseQuery(resourcesQueryOptions);
+  const { data: resources = [], isLoading } = useQuery(resourcesQueryOptions);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    return (resources as ResourceItem[]).filter((r) => 
-      r.title.toLowerCase().includes(search.toLowerCase()) || 
-      (r.category && r.category.toLowerCase().includes(search.toLowerCase()))
-    );
+    const list = Array.isArray(resources) ? resources : [];
+    return (list as ResourceItem[]).filter((r) => {
+      if (!r) return false;
+      const title = (r.title || "").toLowerCase();
+      const category = (r.category || "").toLowerCase();
+      const query = search.toLowerCase();
+      return title.includes(query) || category.includes(query);
+    });
   }, [resources, search]);
 
   return (

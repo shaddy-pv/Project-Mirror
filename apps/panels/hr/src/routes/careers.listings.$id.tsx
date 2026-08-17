@@ -97,7 +97,7 @@ function ListingDetailPage() {
       header: "Stage",
       render: (r) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <StageDropdown applicantId={r.id} stage={r.stage} kind={r.kind} />
+          <StageDropdown applicantId={r.id} stage={r.stage} kind={r.kind || "job"} />
         </div>
       ),
     },

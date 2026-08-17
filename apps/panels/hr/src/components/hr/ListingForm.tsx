@@ -69,7 +69,7 @@ export function ListingForm({
       const payload = {
         ...values,
         openUntil: new Date(values.openUntil).toISOString(),
-        status: "open",
+        status: "open" as const,
       };
       if (listing) {
         return api.updateListing(listing.id, payload);

@@ -170,12 +170,19 @@ function CoursesPage() {
             },
           ]}
           emptyState={
-            <EmptyState
-              icon={BookOpen}
-              line={kind === "course" ? `No courses yet → Create your first course.` : `No training programs found.`}
-              actionLabel={kind === "course" ? `Create course` : undefined}
-              onAction={kind === "course" ? () => navigate({ to: "/courses/new", search: { kind: "course" } }) : undefined}
-            />
+            kind === "course" ? (
+              <EmptyState
+                icon={BookOpen}
+                line="No courses yet → Create your first course."
+                actionLabel="Create course"
+                onAction={() => navigate({ to: "/courses/new", search: { kind: "course" } })}
+              />
+            ) : (
+              <EmptyState
+                icon={BookOpen}
+                line="No training programs found."
+              />
+            )
           }
         />
       </div>

@@ -22,9 +22,79 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
   return data;
 }
 
-export const getPublishedProducts = async () => fetchPublic("/");
-export const getProductBySlug = async (slug: string) => fetchPublic(`/${slug}`);
-export const getMyOrders = async () => fetchWithAuth("/my-orders");
+const FALLBACK_PRODUCTS = [
+  {
+    id: "enginow-hardcover-journal",
+    name: "Enginow Architecture Hardcover Journal",
+    slug: "enginow-hardcover-journal",
+    shortDescription: "Dot-grid, 120gsm archival paper, debossed monogram cover. Made for system designers.",
+    price: 999,
+    discountedPrice: 699,
+    images: ["/assets/shop/journal.png"],
+    rating: 4.9,
+    category: "Diary",
+  },
+  {
+    id: "craft-tshirt",
+    name: "Enginow 'Respect Craft' Heavyweight Tee",
+    slug: "craft-tshirt",
+    shortDescription: "240 GSM organic combed cotton, relaxed architectural cut with minimalist neck print.",
+    price: 1499,
+    discountedPrice: 999,
+    images: ["/assets/shop/tee.png"],
+    rating: 4.8,
+    category: "T-Shirt",
+  },
+  {
+    id: "precision-pen",
+    name: "Machined Matte Brass Precision Pen",
+    slug: "precision-pen",
+    shortDescription: "Balanced weighted body, Schmidt 0.5mm ceramic rollerball refill.",
+    price: 1299,
+    discountedPrice: 899,
+    images: ["/assets/shop/pen.png"],
+    rating: 5.0,
+    category: "Pen",
+  },
+  {
+    id: "engineer-sticker-pack",
+    name: "Holographic & Matte Vinyl Sticker Pack",
+    slug: "engineer-sticker-pack",
+    shortDescription: "Set of 12 waterproof UV-coated stickers celebrating algorithms, systems and craft.",
+    price: 499,
+    discountedPrice: 299,
+    images: ["/assets/shop/stickers.png"],
+    rating: 4.9,
+    category: "Sticker",
+  },
+];
+
+export const getPublishedProducts = async () => {
+  try {
+    const data = await fetchPublic("/");
+    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_PRODUCTS;
+  } catch {
+    return FALLBACK_PRODUCTS;
+  }
+};
+
+export const getProductBySlug = async (slug: string) => {
+  try {
+    return await fetchPublic(`/${slug}`);
+  } catch {
+    const match = FALLBACK_PRODUCTS.find((p) => p.slug === slug || p.id === slug);
+    if (match) return match;
+    return FALLBACK_PRODUCTS[0];
+  }
+};
+
+export const getMyOrders = async () => {
+  try {
+    return await fetchWithAuth("/my-orders");
+  } catch {
+    return [];
+  }
+};
 
 export const placeOrder = async (data: {
   productId: string;

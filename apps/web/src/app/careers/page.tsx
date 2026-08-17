@@ -32,9 +32,11 @@ const careersQueryOptions = queryOptions({
 
 
 
-export default function CareersPage() {
+import { Suspense } from "react";
+
+function CareersContent() {
   const { isAuthenticated } = useAuthContext();
-  const { data: careers } = useSuspenseQuery(careersQueryOptions);
+  const { data: careers = [], isLoading } = useQuery(careersQueryOptions);
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
   
@@ -85,9 +87,13 @@ export default function CareersPage() {
   const [selectedCareer, setSelectedCareer] = useState<CareerItem | null>(null);
 
   const filtered = useMemo(() => {
-    return (careers as CareerItem[]).filter((c) => {
-      const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) || 
-                            c.domain.toLowerCase().includes(search.toLowerCase());
+    const list = Array.isArray(careers) ? careers : [];
+    return (list as CareerItem[]).filter((c) => {
+      if (!c) return false;
+      const title = (c.title || "").toLowerCase();
+      const domain = (c.domain || "").toLowerCase();
+      const query = search.toLowerCase();
+      const matchesSearch = title.includes(query) || domain.includes(query);
       const matchesLocation = activeLocation === "All" || c.locationType === activeLocation;
       return matchesSearch && matchesLocation;
     });
@@ -570,5 +576,13 @@ function ApplyModal({ career, onClose }: { career: CareerItem | null; onClose: (
         )}
       </AnimatePresence>
     </Dialog.Root>
+  );
+}
+
+export default function CareersPage() {
+  return (
+    <Suspense fallback={null}>
+      <CareersContent />
+    </Suspense>
   );
 }

@@ -24,7 +24,7 @@ function CourseContent() {
   const { slug } = useParams() as { slug: string };
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
-  const { data: course } = useSuspenseQuery(courseQueryOptions(slug));
+  const { data: course, isLoading: isCourseLoading } = useQuery(courseQueryOptions(slug));
   const { isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -32,8 +32,6 @@ function CourseContent() {
   const [copied, setCopied] = useState(false);
   const [appliedRef, setAppliedRef] = useState<string | null>(null);
   const [refDiscount, setRefDiscount] = useState(0);
-
-  if (!course) throw notFound();
 
   const { data: myEnrollments, isLoading: isEnrollmentsLoading } = useQuery({
     queryKey: ["enrollments"],
@@ -47,23 +45,32 @@ function CourseContent() {
     enabled: isAuthenticated && !isAuthLoading
   });
 
-  const isCheckingEnrollment = isAuthLoading || (isAuthenticated && isEnrollmentsLoading);
-  const isEnrolled = (myEnrollments as Array<{ courseId: string }>)?.some((e) => e.courseId === course?.id) ?? false;
-  const roadmap = Array.isArray(course.roadmap) ? course.roadmap : [];
-
   useEffect(() => {
     if (refCode) localStorage.setItem("enginow_ref", refCode);
   }, [refCode]);
 
   useEffect(() => {
-    if (course.isFree) return;
+    if (!course || course.isFree) return;
     const code = refCode ?? localStorage.getItem("enginow_ref");
     if (!code) return;
     validateReferralCode({ data: { code } }).then((result) => {
       if (result.valid) { setAppliedRef(code); setRefDiscount(result.discountPercent ?? 15); }
     }).catch(() => {});
-  }, [refCode, course.isFree]);
+  }, [refCode, course?.isFree, course]);
 
+  if (isCourseLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#15171C]" />
+      </div>
+    );
+  }
+
+  if (!course) return notFound();
+
+  const isCheckingEnrollment = isAuthLoading || (isAuthenticated && isEnrollmentsLoading);
+  const isEnrolled = (myEnrollments as Array<{ courseId: string }>)?.some((e) => e.courseId === course?.id) ?? false;
+  const roadmap = Array.isArray(course.roadmap) ? course.roadmap : [];
   const discountedPrice = course.isFree ? 0 : Math.round(course.price - (course.price * refDiscount / 100));
 
   function loadRazorpayScript(): Promise<boolean> {

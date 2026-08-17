@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useState, useMemo } from "react";
 import { ArrowRight, Clock, Layers, ArrowLeft, Search } from "lucide-react";
@@ -60,56 +59,30 @@ function SkeletonCard() {
   );
 }
 
-function CoursesPending() {
-  return (
-    <main className="relative min-h-screen" style={{ background: "#FFFFFF" }}>
-      {/* Amber haze header */}
-      <div aria-hidden style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: "400px", pointerEvents: "none",
-        background: "radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255,232,184,0.40) 0%, rgba(255,248,234,0.12) 55%, transparent 80%)"
-      }} />
-      <div aria-hidden className="pointer-events-none absolute inset-0 grid-paper" style={{ opacity: 0.05 }} />
-
-      <section className="relative px-6 pb-16 pt-24 md:px-10" style={{ borderBottom: "0.8px solid rgba(21,23,28,0.09)" }}>
-        <div className="absolute left-6 top-6 md:left-10 md:top-10">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-[13px] transition-colors" style={{ color: "var(--ink-mute)" }}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to home
-          </Link>
-        </div>
-        <div className="mx-auto max-w-[1440px]">
-          <span className="eyebrow">Curriculum</span>
-          <h1 className="display mt-3 max-w-2xl text-5xl md:text-6xl" style={{ color: "var(--ink)" }}>Learn by building.</h1>
-        </div>
-      </section>
-
-      <section className="relative px-6 py-14 md:px-10">
-        <div className="mx-auto max-w-[1440px]">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
-
 const TYPES = ["All", "Free", "Premium"];
 
 export default function CoursesPage() {
-  const { data: courses } = useSuspenseQuery(coursesQueryOptions);
+  const { data: courses = [], isLoading } = useQuery(coursesQueryOptions);
   
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("All");
 
   const filtered = useMemo(() => {
-    return (courses as CourseItem[]).filter((c) => {
-      const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) || 
-                            c.category.toLowerCase().includes(search.toLowerCase());
-      
+    const list = Array.isArray(courses) ? courses : [];
+    return (list as CourseItem[]).filter((c) => {
+      if (!c) return false;
+      const title = (c.title || "").toLowerCase();
+      const category = (c.category || "").toLowerCase();
+      const query = search.toLowerCase();
+      const matchesSearch = title.includes(query) || category.includes(query);
+
+      const isFree = c.isFree || c.price === 0 || (c as any).discountedPrice === 0;
+      const isPremium = c.isPremium || (!isFree && ((c.price && c.price > 0) || ((c as any).discountedPrice && (c as any).discountedPrice > 0)));
+
       let matchesType = true;
-      if (activeType === "Free") matchesType = c.isFree;
-      if (activeType === "Premium") matchesType = c.isPremium;
-      
+      if (activeType === "Free") matchesType = Boolean(isFree);
+      if (activeType === "Premium") matchesType = Boolean(isPremium);
+
       return matchesSearch && matchesType;
     });
   }, [courses, search, activeType]);
@@ -235,30 +208,21 @@ export default function CoursesPage() {
                     className="glass-card flex flex-col overflow-hidden p-0 transition-all group-hover:-translate-y-1"
                     style={{ borderRadius: "23px" }}
                   >
-                    {/* Banner */}
-                    <div className="relative aspect-[16/10] overflow-hidden" style={{ borderRadius: "23px 23px 0 0", background: "var(--amber-soft)" }}>
-                      {course.bannerUrl ? (
-                        <img
-                          src={course.bannerUrl}
-                          alt={course.title}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="grid h-full w-full place-items-center">
-                          <Layers className="h-10 w-10 opacity-25" style={{ color: "var(--ink)" }} />
-                        </div>
-                      )}
+                    {/* Minimalist Top Surface */}
+                    <div className="relative aspect-[16/9] flex items-center justify-center overflow-hidden" style={{ borderRadius: "23px 23px 0 0", background: "var(--amber-soft)", borderBottom: "0.8px solid rgba(21,23,28,0.06)" }}>
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl transition-transform duration-500 group-hover:scale-110" style={{ background: "rgba(255,255,255,0.85)", border: "0.8px solid rgba(21,23,28,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                        <Layers className="h-6 w-6" style={{ color: "var(--ink)", opacity: 0.6 }} />
+                      </div>
                       {/* Level badge */}
                       <div
-                        className="absolute left-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider"
+                        className="absolute left-3.5 top-3.5 rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider shadow-sm"
                         style={{ ...levelStyle(course.level), backdropFilter: "blur(8px)" }}
                       >
                         {course.level}
                       </div>
                       {/* Free tag */}
                       {course.isFree && (
-                        <div className="absolute right-3 top-3 rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider" style={{ background: "var(--tertiary)", color: "var(--ink)" }}>
+                        <div className="absolute right-3.5 top-3.5 rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-wider shadow-sm" style={{ background: "var(--tertiary)", color: "var(--ink)" }}>
                           Free
                         </div>
                       )}

@@ -1,11 +1,11 @@
 "use client";
 import React, { use } from 'react';
 import Link from 'next/link';
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
-import { ArrowLeft, Calendar, User, Share2, Bookmark } from "lucide-react";
+import { useQuery, queryOptions } from "@tanstack/react-query";
+import { ArrowLeft, Calendar, User, Share2, Bookmark, Loader2 } from "lucide-react";
 import { getBlogById } from "@/lib/blogs.functions";
 import { motion } from "motion/react";
+import { notFound } from "next/navigation";
 
 const blogQueryOptions = (id: string) => queryOptions({
   queryKey: ["blog", id],
@@ -14,7 +14,17 @@ const blogQueryOptions = (id: string) => queryOptions({
 
 export default function BlogReaderPage(props: { params: Promise<{ id: string }> }) {
   const params = use(props.params);
-  const { data: blog } = useSuspenseQuery(blogQueryOptions(params.id));
+  const { data: blog, isLoading } = useQuery(blogQueryOptions(params.id));
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#15171C]" />
+      </div>
+    );
+  }
+
+  if (!blog) return notFound();
 
   return (
     <main className="relative min-h-screen pb-20" style={{ background: "#FFFFFF" }}>

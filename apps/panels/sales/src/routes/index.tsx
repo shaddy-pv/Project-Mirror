@@ -302,34 +302,36 @@ function DashboardPage() {
               {data.charts.freeVsPremium.length === 0 || data.kpis.totalEnrollments === 0 ? (
                 <EmptyState icon={PieIcon} message="No enrollments yet." />
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.charts.freeVsPremium}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      <Label
-                        value={data.kpis.totalEnrollments.toLocaleString()}
-                        position="center"
-                        className="text-3xl font-bold fill-foreground"
-                      />
-                      <Label
-                        value="Total"
-                        position="center"
-                        dy={24}
-                        className="text-xs fill-muted-foreground"
-                      />
-                      {data.charts.freeVsPremium.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val} enrollments (${Math.round(val / data.kpis.totalEnrollments * 100)}%)`, ""]} />
-                  </PieChart>
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={data.charts.freeVsPremium}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={100}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        <Label
+                          value={data.kpis.totalEnrollments.toLocaleString()}
+                          position="center"
+                          className="text-3xl font-bold fill-foreground"
+                        />
+                        <Label
+                          value="Total"
+                          position="center"
+                          dy={24}
+                          className="text-xs fill-muted-foreground"
+                        />
+                        {data.charts.freeVsPremium.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => [`${val} enrollments (${Math.round(val / data.kpis.totalEnrollments * 100)}%)`, ""]} />
+                    </PieChart>
+                  </ResponsiveContainer>
                   <div className="flex justify-center gap-6 mt-4">
                     {data.charts.freeVsPremium.map((entry, i) => (
                       <div key={entry.name} className="flex items-center gap-2 text-sm">
@@ -339,7 +341,7 @@ function DashboardPage() {
                       </div>
                     ))}
                   </div>
-                </ResponsiveContainer>
+                </>
               )}
             </ChartCard>
           </div>

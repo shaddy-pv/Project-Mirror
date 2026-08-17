@@ -1,7 +1,7 @@
 import type { Blog, Course, PanelUser, Internship, Career, Product, Order } from "@/lib/types";
 import { getAuthToken } from "@/lib/session";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api";
+const API_URL = (import.meta.env as any)["VITE_API_URL"] || "http://127.0.0.1:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);

@@ -34,6 +34,20 @@ const DEFAULT_STAFF: Array<{
     name: "Shadan MD",
   },
   {
+    email: "khushi897920@gmail.com",
+    username: "khushi897920",
+    password: "password@123",
+    role: "admin",
+    name: "Khushi Singh",
+  },
+  {
+    email: "khushi@enginow.in",
+    username: "khushi",
+    password: "password@123",
+    role: "admin",
+    name: "Khushi Singh",
+  },
+  {
     email: "admin@enginow.in",
     username: "admin",
     password: "password@123",

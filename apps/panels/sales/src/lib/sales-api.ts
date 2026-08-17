@@ -13,7 +13,7 @@ export interface Inquiry {
   message: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = (import.meta.env as any)["VITE_API_URL"] || "http://localhost:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);

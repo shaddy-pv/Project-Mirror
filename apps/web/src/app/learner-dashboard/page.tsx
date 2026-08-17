@@ -1,7 +1,6 @@
 "use client";
 ﻿import Link from "next/link";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   BookOpen, Layers, ArrowRight, Clock, ArrowLeft, Check, Share2, Trophy,
@@ -339,7 +338,7 @@ export default function DashboardPage() {
                 {auth.user?.displayName ? <>Hey, <span className="italic-serif" style={{ color: "#B8922E" }}>{auth.user.displayName.split(" ")[0]}</span>.</> : <>Your <span className="italic-serif" style={{ color: "#B8922E" }}>dashboard</span>.</>}
               </motion.h1>
               <p className="mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
-                Track your learning journey enrolled courses and internship applications, all in one place.
+                Track your learning journey, enrolled courses, and internship applications, all in one place.
               </p>
             </div>
             <div className="flex items-center gap-3 self-start">
@@ -363,7 +362,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="mono text-[10px] uppercase tracking-[0.16em]" style={{ color: "var(--ink-mute)" }}>Your Referral Code</p>
                     <p className="mt-1 font-mono text-2xl font-bold tracking-widest" style={{ color: "var(--ink)" }}>{profile.referralCode}</p>
-                    <p className="mt-1 text-[12.5px]" style={{ color: "var(--ink-soft)" }}>{profile.referralExpired ? "Your code has reached its 5-use limit." : `${5 - (profile.referralUsageCount ?? 0)} uses left ΓÇö share for 15% off on paid courses`}</p>
+                    <p className="mt-1 text-[12.5px]" style={{ color: "var(--ink-soft)" }}>{profile.referralExpired ? "Your code has reached its 5-use limit." : `${5 - (profile.referralUsageCount ?? 0)} uses left — share for 15% off on paid courses`}</p>
                   </div>
                 </div>
                 <button onClick={copyRefLink} disabled={profile.referralExpired} className="btn-outline shrink-0 disabled:opacity-40">

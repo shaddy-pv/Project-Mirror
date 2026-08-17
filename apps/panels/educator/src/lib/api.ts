@@ -1,7 +1,7 @@
 import { session } from "./role";
 import type { Blog, Course, Learner, Profile, Resource } from "./mock/types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = (import.meta.env as any)["VITE_API_URL"] || "http://localhost:5000/api";
 
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);

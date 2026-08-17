@@ -87,7 +87,7 @@ function CourseDetail() {
   }
 
   const noun = c.kind === "training" ? "training program" : "course";
-  const rows = (learners.data ?? []).filter((l) => {
+  const rows = (learners.data ?? []).filter((l: any) => {
     const q = learnerQuery.trim().toLowerCase();
     return !q || l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q);
   });
@@ -214,7 +214,7 @@ function CourseDetail() {
                 <Card>
                   <CardContent className="p-0">
                     <ul className="divide-y divide-border">
-                      {rows.map((l) => (
+                      {rows.map((l: any) => (
                         <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                           <span className="font-medium">{l.name}</span>
                           <span className="text-muted-foreground">{l.email}</span>

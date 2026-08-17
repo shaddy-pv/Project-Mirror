@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowLeft, Search, Code, BrainCircuit, Play } from "lucide-react";
 import { getPracticeTests } from "@/lib/practice.functions";
@@ -23,14 +22,18 @@ const practiceQueryOptions = queryOptions({
 });
 
 export default function PracticePage() {
-  const { data: tests } = useSuspenseQuery(practiceQueryOptions);
+  const { data: tests = [], isLoading } = useQuery(practiceQueryOptions);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    return (tests as PracticeTest[]).filter((t) => 
-      t.title.toLowerCase().includes(search.toLowerCase()) || 
-      (t.subject && t.subject.toLowerCase().includes(search.toLowerCase()))
-    );
+    const list = Array.isArray(tests) ? tests : [];
+    return (list as PracticeTest[]).filter((t) => {
+      if (!t) return false;
+      const title = (t.title || "").toLowerCase();
+      const subject = (t.subject || "").toLowerCase();
+      const query = search.toLowerCase();
+      return title.includes(query) || subject.includes(query);
+    });
   }, [tests, search]);
 
   return (

@@ -64,12 +64,10 @@ function ProductContent() {
   const { slug } = useParams() as { slug: string };
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
-  const { data: product } = useSuspenseQuery(productQueryOptions(slug));
+  const { data: product, isLoading: isProductLoading } = useQuery(productQueryOptions(slug));
   const { isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  if (!product) throw notFound();
 
   const [currentImg, setCurrentImg] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -102,17 +100,29 @@ function ProductContent() {
     },
     enabled: isAuthenticated && !isAuthLoading
   });
+
   useEffect(() => {
     if (refCode) localStorage.setItem("enginow_ref", refCode);
   }, [refCode]);
 
   useEffect(() => {
+    if (!product) return;
     const code = refCode ?? localStorage.getItem("enginow_ref");
     if (!code) return;
     validateReferralCode({ data: { code } }).then((r) => {
-      if (r.valid) { setAppliedRef(code); setRefDiscount(r.discountPercent ?? 15); setRefInput(code); }
+      if (r.valid) { setAppliedRef(code); setRefDiscount(r.discountPercent ?? 15); }
     }).catch(() => {});
-  }, [refCode]);
+  }, [refCode, product]);
+
+  if (isProductLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#15171C]" />
+      </div>
+    );
+  }
+
+  if (!product) return notFound();
 
   const finalPrice = Math.round(product.discountedPrice - (product.discountedPrice * refDiscount / 100));
   const isDiary = product.category === "Diary";

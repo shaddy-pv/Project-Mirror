@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { ArrowLeft, Search, Calendar, User, FileText, ArrowRight } from "lucide-react";
 import { getBlogs } from "@/lib/blogs.functions";
@@ -23,14 +22,18 @@ const blogsQueryOptions = queryOptions({
 });
 
 export default function BlogsPage() {
-  const { data: blogs } = useSuspenseQuery(blogsQueryOptions);
+  const { data: blogs = [], isLoading } = useQuery(blogsQueryOptions);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    return (blogs as BlogItem[]).filter((b) => 
-      b.title.toLowerCase().includes(search.toLowerCase()) || 
-      b.excerpt?.toLowerCase().includes(search.toLowerCase())
-    );
+    const list = Array.isArray(blogs) ? blogs : [];
+    return (list as BlogItem[]).filter((b) => {
+      if (!b) return false;
+      const title = (b.title || "").toLowerCase();
+      const excerpt = (b.excerpt || "").toLowerCase();
+      const query = search.toLowerCase();
+      return title.includes(query) || excerpt.includes(query);
+    });
   }, [blogs, search]);
 
   return (

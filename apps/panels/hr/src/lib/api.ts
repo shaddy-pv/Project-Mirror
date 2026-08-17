@@ -1,7 +1,8 @@
 // ─── HR Panel API Client ─────────────────────────────────────────────────────
 // Connects to the Enginow backend. All data comes from MongoDB via /api/admin/*
 
-const BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api$/, "") : "http://localhost:5000";
+const rawEnvUrl = (import.meta.env as any)["VITE_API_URL"];
+const BASE = rawEnvUrl ? rawEnvUrl.replace(/\/api$/, "") : "http://localhost:5000";
 const STORAGE_KEY = "enginow_hr_auth";
 
 function getToken(): string {

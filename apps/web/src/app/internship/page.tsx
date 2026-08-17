@@ -35,9 +35,11 @@ const internshipsQueryOptions = queryOptions({
 
 
 
+import { Suspense } from "react";
+
 const TYPES = ["All", "Summer", "Monsoon", "Winter", "Spring"];
 
-export default function InternshipsPage() {
+function InternshipsContent() {
   const { isAuthenticated } = useAuthContext();
   const { data: internships = [], isLoading } = useQuery({
     ...internshipsQueryOptions,
@@ -95,9 +97,13 @@ export default function InternshipsPage() {
   const [selectedInternship, setSelectedInternship] = useState<InternshipItem | null>(null);
 
   const filtered = useMemo(() => {
-    return (internships as InternshipItem[]).filter((i) => {
-      const matchesSearch = i.title.toLowerCase().includes(search.toLowerCase()) || 
-                            i.domain.toLowerCase().includes(search.toLowerCase());
+    const list = Array.isArray(internships) ? internships : [];
+    return (list as InternshipItem[]).filter((i) => {
+      if (!i) return false;
+      const title = (i.title || "").toLowerCase();
+      const domain = (i.domain || "").toLowerCase();
+      const query = search.toLowerCase();
+      const matchesSearch = title.includes(query) || domain.includes(query);
       const matchesType = activeType === "All" || i.type === activeType;
       return matchesSearch && matchesType;
     });
@@ -608,5 +614,13 @@ function ApplyModal({ internship, onClose }: { internship: InternshipItem | null
         )}
       </AnimatePresence>
     </Dialog.Root>
+  );
+}
+
+export default function InternshipsPage() {
+  return (
+    <Suspense fallback={null}>
+      <InternshipsContent />
+    </Suspense>
   );
 }
